@@ -7,10 +7,13 @@ from TD3 import TD3
 from utils import ReplayBuffer
 from rsoccer_gym.vss.env_ma import *
 
+from memory_profiler import profile
+
+@profile
 def train():
     ######### Hyperparameters #########
     env_name = "SSL3v3Env-v0"
-    number = 1
+    number = 2
     random_seed = 0
     gamma = 0.99  # discount for future rewards
     batch_size = 100  # num of transitions sampled from replay buffer
@@ -23,12 +26,16 @@ def train():
     max_episodes = 10000000000000  # max num of episodes
     max_timesteps = 200  # max timesteps in one episode
     save_rate = 5000  # save the check point per ? episode
-    restore = False
-    restore_num = 5
-    restore_step_k = 6914
-    restore_appendix = f"./models/{env_name}/{restore_num}/{restore_step_k}k_"
+    restore = True
+    restore_num = 1
+    restore_step_k = 4731
+    restore_prefix = f"./models/{env_name}/{restore_num}/{restore_step_k}k_"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device}")
+
+    ################ Opponent Info ###################
+    opponent_prefixes = {}
+    # opponent_prefixes[0] = "./models/SSL3v3Env-v0/1/2348k_"
     ###################################
     # save setting
     directory = f"./models/{env_name}/{number}"
@@ -48,7 +55,8 @@ def train():
         'max_episodes': max_episodes,
         'max_timesteps': max_timesteps,
         'save_rate': save_rate,
-        'directory': directory
+        'directory': directory,
+        'opponent_prefixes': opponent_prefixes
     }
     np.save(f"{directory}/args_num_{number}.npy", hyperparameters)
 
@@ -58,9 +66,14 @@ def train():
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
 
+    for idx, opponent_prefix in opponent_prefixes:
+        opponent_agent = TD3(lr, state_dim, action_dim, max_action, device=device)
+        opponent_agent.load(opponent_prefix)
+        env.set_opponent_by_idx(idx, opponent_agent)
+
     policy = TD3(lr, state_dim, action_dim, max_action,device = device)
     if restore:
-        policy.load(restore_appendix)
+        policy.load(restore_prefix)
     replay_buffer = ReplayBuffer()
 
     if random_seed:

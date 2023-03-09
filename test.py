@@ -4,7 +4,7 @@ import gym
 import numpy as np
 from rsoccer_gym.ssl import *
 
-env = gym.make('SSLCatchEnv-v0')
+env = gym.make('SSL3v3Env-v0')
 
 ball_grad_sum = 0
 

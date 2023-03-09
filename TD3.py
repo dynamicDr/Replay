@@ -36,7 +36,7 @@ class Critic(nn.Module):
         return q
     
 class TD3:
-    def __init__(self, lr, state_dim, action_dim, max_action,device):
+    def __init__(self, lr, state_dim, action_dim, max_action,device=torch.device("cuda" if torch.cuda.is_available() else "cpu")):
         self.device = device
         self.actor = Actor(state_dim, action_dim, max_action).to(device)
         self.actor_target = Actor(state_dim, action_dim, max_action).to(device)

@@ -40,4 +40,4 @@ reward = goal_rw + goaled_penety + ball_grad_rw + robot_grad_rw + energy_rw
 attack agent
 进球给予大的reward，被进球给予小的penalty，鼓励agent前往对方半场
 defend agent
-进球给予小的reward，被进球给予大的penalty，鼓励agent留在自己半场
+进球给予小的reward，被进球给予大的penalty，鼓励agent传球

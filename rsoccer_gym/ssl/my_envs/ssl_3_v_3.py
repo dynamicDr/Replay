@@ -77,17 +77,7 @@ class SSL3v3Env(SSLBaseEnv):
         self.done_limit = None
         self.dribbler_time = 0
         self.commands = None
-        self.reward_shaping_total = {
-            'goal': 0,
-            'done_left_out': 0,
-            'done_ball_out': 0,
-            'done_robot_out': 0,
-            'done_robot_in_gk_area': 0,
-            'rw_ball_grad': 0,
-            'rw_robot_grad': 0,
-            'rw_robot_orientation': 0,
-            'rw_energy': 0
-        }
+        self.reward_shaping_total = {}
         print('Environment initialized', "Obs:", n_obs)
 
     def reset(self):
@@ -98,6 +88,12 @@ class SSL3v3Env(SSLBaseEnv):
         observation, reward, done, _ = super().step(action)
 
         return observation, reward, done, self.reward_shaping_total
+
+    def set_teammate(self,teammate):
+        self.teammate = teammate
+
+    def set_opponent_by_idx(self,idx,opponent):
+        self.opponents[idx] = opponent
 
     def construct_observation(self,main_robot_team,main_robot_idx):
         assert main_robot_team == "blue" or "yellow"
@@ -189,7 +185,7 @@ class SSL3v3Env(SSLBaseEnv):
                 if nearest_yellow_robot_dist <= threshold and self.commands[
                     self.n_robots_blue + nearest_yellow_robot].dribbler and self.__is_toward_ball("yellow",
                                                                                                   nearest_blue_robot):
-                    self.possession_robot_idx = 3 + nearest_yellow_robot
+                    self.possession_robot_idx = self.n_robots_blue + nearest_yellow_robot
         return observation
 
     def _get_commands(self, actions):
@@ -304,11 +300,6 @@ class SSL3v3Env(SSLBaseEnv):
 
             robot_grad_rw = 0.2 * self.__robot_grad_rw()
             self.reward_shaping_total['rw_robot_grad'] += robot_grad_rw
-
-            # robot_orientation_rw = 0
-            # if self.possession_robot_idx == self.active_robot_idx:
-            #     robot_orientation_rw = 0.2 * self.__robot_orientation_rw()
-            #     self.reward_shaping_total['rw_robot_orientation'] += robot_orientation_rw
 
             energy_rw = -self.__energy_pen() / self.energy_scale
             self.reward_shaping_total['rw_energy'] += energy_rw
