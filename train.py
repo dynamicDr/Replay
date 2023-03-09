@@ -9,8 +9,8 @@ from rsoccer_gym.vss.env_ma import *
 
 def train():
     ######### Hyperparameters #########
-    env_name = "SSLCatchEnv-v0"
-    number = 2
+    env_name = "SSL3v3Env-v0"
+    number = 0
     random_seed = 0
     gamma = 0.99  # discount for future rewards
     batch_size = 100  # num of transitions sampled from replay buffer

@@ -131,7 +131,7 @@ class VSSMAEnv(VSSBaseEnv):
 
     def step(self, action):
         self.steps += 1
-        # Join agent action with environment actions
+        # Join other_agent action with environment actions
         commands: List[Robot] = self._get_commands(action)
         # Send command to simulator
         self.rsim.send_commands(commands)
@@ -319,7 +319,7 @@ class VSSMAEnv(VSSBaseEnv):
 
         reward = {f'robot_{i}': 0 for i in range(self.n_robots_control)}
         done = False
-        # for agent
+        # for other_agent
         w_move = 0.2  # [-5,5]
         w_ball_grad = 0.8  # [-5,5]
         w_energy = 2e-6
@@ -992,7 +992,7 @@ class VSSMAAdv(VSSMAEnv):
     def _calculate_opp_reward(self, done, blue_goal=False):
 
         reward = {f'robot_{i}': 0 for i in range(self.n_robots_control)}
-        # for agent
+        # for other_agent
         w_move = 0.2  # [-5,5]
         w_ball_grad = 0.8  # [-5,5]
         w_energy = 2e-6

@@ -50,7 +50,7 @@ class SSLBaseEnv(gym.Env):
 
     def step(self, action):
         self.steps += 1
-        # Join agent action with environment actions
+        # Join other_agent action with environment actions
         commands: List[Robot] = self._get_commands(action)
         # Send command to simulator
         self.rsim.send_commands(commands)
