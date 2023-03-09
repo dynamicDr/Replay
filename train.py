@@ -10,7 +10,7 @@ from rsoccer_gym.vss.env_ma import *
 def train():
     ######### Hyperparameters #########
     env_name = "SSL3v3Env-v0"
-    number = 0
+    number = 1
     random_seed = 0
     gamma = 0.99  # discount for future rewards
     batch_size = 100  # num of transitions sampled from replay buffer
@@ -27,6 +27,8 @@ def train():
     restore_num = 5
     restore_step_k = 6914
     restore_appendix = f"./models/{env_name}/{restore_num}/{restore_step_k}k_"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using {device}")
     ###################################
     # save setting
     directory = f"./models/{env_name}/{number}"
@@ -56,7 +58,7 @@ def train():
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
 
-    policy = TD3(lr, state_dim, action_dim, max_action)
+    policy = TD3(lr, state_dim, action_dim, max_action,device = device)
     if restore:
         policy.load(restore_appendix)
     replay_buffer = ReplayBuffer()
