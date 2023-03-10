@@ -30,7 +30,7 @@ tail -fn 50 nohup.out
 查看后台进程的PID：
 ps
 
-如果关闭了命令行，可以这样查看进程编号（第二列）：
+如果关闭了命令行，可以这样查看进程PID：
 ps aux | grep "train.py"
 
 终止进程：

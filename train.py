@@ -1,3 +1,5 @@
+import argparse
+
 import torch
 import gym
 import numpy as np
@@ -7,35 +9,30 @@ from TD3 import TD3
 from utils import ReplayBuffer
 from rsoccer_gym.vss.env_ma import *
 
-from memory_profiler import profile
-
-@profile
-def train():
-    ######### Hyperparameters #########
-    env_name = "SSL3v3Env-v0"
-    number = 2
-    random_seed = 0
-    gamma = 0.99  # discount for future rewards
-    batch_size = 100  # num of transitions sampled from replay buffer
-    lr = 0.00001
-    exploration_noise = 0.1
-    polyak = 0.995  # target policy update parameter (1-tau)
-    policy_noise = 0.2  # target policy smoothing noise
-    noise_clip = 0.5
-    policy_delay = 2  # delayed policy updates parameter
-    max_episodes = 10000000000000  # max num of episodes
-    max_timesteps = 200  # max timesteps in one episode
-    save_rate = 5000  # save the check point per ? episode
-    restore = True
-    restore_num = 1
-    restore_step_k = 4731
-    restore_prefix = f"./models/{env_name}/{restore_num}/{restore_step_k}k_"
+def train(args):
+    env_name = args.env_name
+    number = args.number
+    random_seed = args.random_seed
+    gamma = args.gamma  # discount for future rewards
+    batch_size = args.batch_size  # num of transitions sampled from replay buffer
+    lr = args.lr
+    exploration_noise = args.exploration_noise
+    polyak = args.polyak  # target policy update parameter (1-tau)
+    policy_noise = args.policy_noise  # target policy smoothing noise
+    noise_clip = args.noise_clip
+    policy_delay = args.policy_delay  # delayed policy updates parameter
+    max_episodes = args.max_episodes  # max num of episodes
+    max_timesteps = args.max_timesteps  # max timesteps in one episode
+    save_rate = args.save_rate  # save the check point per ? episode
+    restore = args.restore
+    restore_num = args.restore_num
+    restore_step_k = args.restore_step_k
+    restore_env_name = args.restore_env_name
+    restore_prefix = f"./models/{restore_env_name}/{restore_num}/{restore_step_k}k_"
+    rl_opponent = args.rl_opponent
+    opponent_prefix = args.opponent_prefix
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using {device}")
 
-    ################ Opponent Info ###################
-    opponent_prefixes = {}
-    # opponent_prefixes[0] = "./models/SSL3v3Env-v0/1/2348k_"
     ###################################
     # save setting
     directory = f"./models/{env_name}/{number}"
@@ -56,22 +53,21 @@ def train():
         'max_timesteps': max_timesteps,
         'save_rate': save_rate,
         'directory': directory,
-        'opponent_prefixes': opponent_prefixes
+        'opponent_prefix': opponent_prefix
     }
     np.save(f"{directory}/args_num_{number}.npy", hyperparameters)
-
 
     env = gym.make(env_name)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
 
-    for idx, opponent_prefix in opponent_prefixes:
+    if rl_opponent:
         opponent_agent = TD3(lr, state_dim, action_dim, max_action, device=device)
         opponent_agent.load(opponent_prefix)
-        env.set_opponent_by_idx(idx, opponent_agent)
+        env.set_opponent_by_idx(0, opponent_agent)
 
-    policy = TD3(lr, state_dim, action_dim, max_action,device = device)
+    policy = TD3(lr, state_dim, action_dim, max_action, device=device)
     if restore:
         policy.load(restore_prefix)
     replay_buffer = ReplayBuffer()
@@ -90,9 +86,6 @@ def train():
 
     # init sub-rewards dict
     reward_dict = {}
-    for sub_reward in env.reward_shaping_total:
-        if sub_reward.startswith("rw_"):
-            reward_dict[sub_reward] = 0
 
     done_type = None
     # training procedure:
@@ -100,16 +93,18 @@ def train():
         state = env.reset()
         for t in range(max_timesteps):
             total_step += 1
-            ep_step +=1
+            ep_step += 1
             # select action and add exploration noise:
             action = policy.select_action(state)
             action = action + np.random.normal(0, exploration_noise, size=env.action_space.shape[0])
             action = action.clip(env.action_space.low, env.action_space.high)
-
             # take action in env:
             next_state, reward, done, info = env.step(action)
+            # env.render()
             for sub_reward in info:
                 if sub_reward.startswith("rw_"):
+                    if not sub_reward in reward_dict.keys():
+                        reward_dict[sub_reward] = 0
                     reward_dict[sub_reward] += info[sub_reward]
             replay_buffer.add((state, action, reward, next_state, float(done)))
             state = next_state
@@ -117,7 +112,7 @@ def train():
 
             # if episode is done then update policy:
             if done or t == (max_timesteps - 1):
-                if info["goal"]!= 0:
+                if info["goal"] != 0:
                     done_type = "done_goal"
                 elif t == (max_timesteps - 1):
                     done_type = "done_time_up"
@@ -129,7 +124,11 @@ def train():
                 policy.update(replay_buffer, t, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay)
                 break
 
-        print("Episode: {}\tStep: {}k\tReward: {}\tGoal: {} \tDone Type: {} \tEpi_step: {} ".format(episode,int(total_step / 1000),round(ep_reward,2),info["goal"],done_type,ep_step))
+        print("Episode: {}\tStep: {}k\tReward: {}\tGoal: {} \tDone Type: {} \tEpi_step: {} ".format(episode,
+                                                                                                    int(total_step / 1000),
+                                                                                                    round(ep_reward, 2),
+                                                                                                    info["goal"],
+                                                                                                    done_type, ep_step))
 
         # logging updates:
         writer.add_scalar("reward", ep_reward, global_step=episode)
@@ -144,6 +143,27 @@ def train():
             policy.save(directory, int(total_step / 1000))
 
 
-
 if __name__ == '__main__':
-    train()
+    parser = argparse.ArgumentParser(description='Training arguments')
+    parser.add_argument('--env_name', type=str, default='SSL3v34AttackEnv-v0', help='environment name')
+    parser.add_argument('--number', type=int, default=0, help='number')
+    parser.add_argument('--random_seed', type=int, default=0, help='random seed')
+    parser.add_argument('--gamma', type=float, default=0.99, help='discount for future rewards')
+    parser.add_argument('--batch_size', type=int, default=100, help='num of transitions sampled from replay buffer')
+    parser.add_argument('--lr', type=float, default=0.00001, help='learning rate')
+    parser.add_argument('--exploration_noise', type=float, default=0.1, help='exploration noise')
+    parser.add_argument('--polyak', type=float, default=0.995, help='target policy update parameter (1-tau)')
+    parser.add_argument('--policy_noise', type=float, default=0.2, help='target policy smoothing noise')
+    parser.add_argument('--noise_clip', type=float, default=0.5, help='noise clip')
+    parser.add_argument('--policy_delay', type=int, default=2, help='delayed policy updates parameter')
+    parser.add_argument('--max_episodes', type=int, default=10000000000000, help='max num of episodes')
+    parser.add_argument('--max_timesteps', type=int, default=200, help='max timesteps in one episode')
+    parser.add_argument('--save_rate', type=int, default=5000, help='save the check point per ? episode')
+    parser.add_argument('--restore', type=bool, default=True, help='restore from checkpoint or not')
+    parser.add_argument('--restore_env_name', type=str, default="", help='')
+    parser.add_argument('--restore_num', type=int, default=1, help='restore number')
+    parser.add_argument('--restore_step_k', type=int, default=4731, help='restore step k')
+    parser.add_argument('--rl_opponent', type=bool, default=True, help='load a rl agent as opponent')
+    parser.add_argument('--opponent_prefix', type=str, default="./models/SSL3v3Env-v0/1/4731k_")
+    args = parser.parse_args()
+    train(args)

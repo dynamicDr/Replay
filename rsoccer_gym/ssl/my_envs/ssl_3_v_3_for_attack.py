@@ -38,15 +38,14 @@ class SSL3v34AttackEnv(SSL3v3Env):
             return rbt.x > half_len - pen_len and abs(rbt.y) < half_pen_wid
 
         ball = self.frame.ball
-        robot = self.frame.robots_blue[0]
-        if robot.x < self.done_limit or ball.x < self.done_limit:
-            done = True
-            self.reward_shaping_total['done_left_out'] += 1
-            reward = -10
-        if abs(robot.y) > half_wid or abs(robot.x) > half_len:
-            done = True
-            self.reward_shaping_total['done_robot_out'] += 1
-        elif abs(ball.y) > half_wid:
+        robots = list(self.frame.robots_blue.values())
+        robots.extend(list(self.frame.robots_yellow.values()))
+        for robot in robots:
+            if abs(robot.y) > half_wid or abs(robot.x) > half_len:
+                done = True
+                self.reward_shaping_total['done_robot_out'] += 1
+                break
+        if abs(ball.y) > half_wid and not done:
             done = True
             self.reward_shaping_total['done_ball_out'] += 1
         elif ball.x < -half_len or abs(ball.y) > half_wid:
@@ -59,22 +58,22 @@ class SSL3v34AttackEnv(SSL3v3Env):
         elif ball.x > half_len:
             done = True
             if abs(ball.y) < half_goal_wid:
-                reward = 100
+                reward = 50
                 self.reward_shaping_total['goal'] += 1
             else:
                 self.reward_shaping_total['done_ball_out'] += 1
-        elif self.last_frame is not None:
 
-            ball_grad_rw = self.__ball_grad_rw()
-            self.reward_shaping_total['rw_ball_grad'] += ball_grad_rw
-
-            robot_grad_rw = 0.2 * self.__robot_grad_rw()
-            self.reward_shaping_total['rw_robot_grad'] += robot_grad_rw
-
-            energy_rw = -self.__energy_pen() / self.energy_scale
-            self.reward_shaping_total['rw_energy'] += energy_rw
-
-            reward = ball_grad_rw + robot_grad_rw + energy_rw
+        # elif self.last_frame is not None:
+        #     ball_grad_rw = self._ball_grad_rw()
+        #     self.reward_shaping_total['rw_ball_grad'] += ball_grad_rw
+        #
+        #     robot_grad_rw = 0.2 * self._robot_grad_rw()
+        #     self.reward_shaping_total['rw_robot_grad'] += robot_grad_rw
+        #
+        #     energy_rw = -self._energy_pen() / self.energy_scale
+        #     self.reward_shaping_total['rw_energy'] += energy_rw
+        #
+        #     reward = ball_grad_rw + robot_grad_rw + energy_rw
 
         done = done
         return reward, done
