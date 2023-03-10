@@ -44,7 +44,9 @@ def train(args):
     opponent_prefix = args.opponent_prefix
     policy_update_freq = args.policy_update_freq
     multithread = args.multithread
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = args.device
+    if not torch.cuda.is_available():
+        device = "cpu"
 
     # save setting
     directory = f"./models/{env_name}/{number}"
@@ -193,5 +195,6 @@ if __name__ == '__main__':
     parser.add_argument('--opponent_prefix', type=str, default="./models/SSL3v3Env-v0/1/4731k_")
     parser.add_argument('--policy_update_freq', type=int, default=10, help='')
     parser.add_argument('--multithread', type=bool, default=True, help='')
+    parser.add_argument('--device', type=str, default="cuda", help='')
     args = parser.parse_args()
     train(args)
