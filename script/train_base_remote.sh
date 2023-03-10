@@ -23,7 +23,7 @@ nohup python3 -u train.py \
     --opponent_prefix="./models/SSL3v3Env-v0/1/4731k_" \
     --policy_update_freq=10 \
     --multithread=True \
-    --device="cpu" \
+    --device="cuda" \
     > nohup.out 2>&1 &
 disown
 tail -fn 50 nohup.out
