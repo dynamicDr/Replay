@@ -6,7 +6,7 @@ nohup python3 -u train.py \
     --random_seed=0 \
     --gamma=0.99 \
     --batch_size=1000 \
-    --lr=0.00001 \
+    --lr=0.0001 \
     --exploration_noise=0.1 \
     --polyak=0.995 \
     --policy_noise=0.2 \
