@@ -1,7 +1,7 @@
 #!/bin/bash
 
 env_name="SSL3v34AttackEnv-v0"
-number=0
+number=-1
 random_seed=0
 gamma=0.99
 batch_size=100

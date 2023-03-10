@@ -298,16 +298,16 @@ class SSL3v3Env(SSLBaseEnv):
             ball_grad_rw = self._ball_grad_rw()
             self.reward_shaping_total['rw_ball_grad'] += ball_grad_rw
 
-            robot_grad_rw = 0.2 * self._robot_grad_rw()
-            self.reward_shaping_total['rw_robot_grad'] += robot_grad_rw
+            # robot_grad_rw = 0.2 * self._robot_grad_rw()
+            # self.reward_shaping_total['rw_robot_grad'] += robot_grad_rw
 
-            move_to_ball_rw = 0.2 * self._move_to_ball_rw()
+            move_to_ball_rw = 0.02 * self._move_to_ball_rw()
             self.reward_shaping_total['rw_move_to_ball'] += move_to_ball_rw
 
             energy_rw = -self._energy_pen() / self.energy_scale
             self.reward_shaping_total['rw_energy'] += energy_rw
 
-            reward = ball_grad_rw + robot_grad_rw + move_to_ball_rw + energy_rw
+            reward = ball_grad_rw + move_to_ball_rw + energy_rw
 
         done = done
         return reward, done
@@ -359,7 +359,7 @@ class SSL3v3Env(SSLBaseEnv):
         return pos_frame
 
     def _energy_pen(self):
-        robot = self.frame.robots_blue[0]
+        robot = self.frame.robots_blue[self.active_blue_robot_idx]
 
         # Sum of abs each wheel speed sent
         energy = abs(robot.v_wheel0) \
@@ -374,14 +374,14 @@ class SSL3v3Env(SSLBaseEnv):
 
         # Calculate previous ball dist
         last_ball = self.last_frame.ball
-        last_robot = self.last_frame.robots_blue[0]
+        last_robot = self.last_frame.robots_blue[self.active_blue_robot_idx]
         last_ball_pos = np.array([last_ball.x, last_ball.y])
         last_robot_pos = np.array([last_robot.x, last_robot.y])
         last_dist = np.linalg.norm(last_robot_pos - last_ball_pos)
 
         # Calculate new ball dist
         ball = self.frame.ball
-        robot = self.frame.robots_blue[0]
+        robot = self.frame.robots_blue[self.active_blue_robot_idx]
         ball_pos = np.array([ball.x, ball.y])
         robot_pos = np.array([robot.x, robot.y])
         dist = np.linalg.norm(robot_pos - last_ball_pos)
@@ -440,8 +440,8 @@ class SSL3v3Env(SSLBaseEnv):
     def _robot_orientation_rw(self):
         last_ori_value = self.last_ori_value
         # 机器人坐标、朝向
-        theta = math.radians(self.frame.robots_blue[0].theta)
-        Xr, Yr, theta = self.frame.robots_blue[0].x, self.frame.robots_blue[
+        theta = math.radians(self.frame.robots_blue[self.active_blue_robot_idx].theta)
+        Xr, Yr, theta = self.frame.robots_blue[self.active_blue_robot_idx].x, self.frame.robots_blue[
             0].y, theta
 
         # 球门坐标
@@ -465,8 +465,8 @@ class SSL3v3Env(SSLBaseEnv):
         return normalized_value - last_ori_value
 
     def _towards_ball_rw(self):
-        theta = math.radians(self.frame.robots_blue[0].theta)
-        Xr, Yr, theta, Xb, Yb = self.frame.robots_blue[0].x, self.frame.robots_blue[
+        theta = math.radians(self.frame.robots_blue[self.active_blue_robot_idx].theta)
+        Xr, Yr, theta, Xb, Yb = self.frame.robots_blue[self.active_blue_robot_idx].x, self.frame.robots_blue[
             0].y, theta, self.frame.ball.x, self.frame.ball.y
 
         # 计算机器人-球连线方向的角度

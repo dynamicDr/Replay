@@ -1,5 +1,9 @@
 import argparse
+import queue
+import threading
+import time
 
+import tensorboard
 import torch
 import gym
 import numpy as np
@@ -8,6 +12,12 @@ import os
 from TD3 import TD3
 from utils import ReplayBuffer
 from rsoccer_gym.vss.env_ma import *
+
+
+def update_policy(policy, replay_buffer, t, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay):
+    policy.update(replay_buffer=replay_buffer, n_iter=t, batch_size=batch_size, gamma=gamma, polyak=polyak,
+                  policy_noise=policy_noise, noise_clip=noise_clip, policy_delay=policy_delay)
+
 
 def train(args):
     env_name = args.env_name
@@ -29,33 +39,17 @@ def train(args):
     restore_step_k = args.restore_step_k
     restore_env_name = args.restore_env_name
     restore_prefix = f"./models/{restore_env_name}/{restore_num}/{restore_step_k}k_"
+    args.restore_prefix = restore_prefix
     rl_opponent = args.rl_opponent
     opponent_prefix = args.opponent_prefix
+    policy_update_freq = args.policy_update_freq
+    multithread = args.multithread
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ###################################
     # save setting
     directory = f"./models/{env_name}/{number}"
     os.makedirs(directory, exist_ok=True)
-    hyperparameters = {
-        'env_name': env_name,
-        'number': number,
-        'random_seed': random_seed,
-        'gamma': gamma,
-        'batch_size': batch_size,
-        'lr': lr,
-        'exploration_noise': exploration_noise,
-        'polyak': polyak,
-        'policy_noise': policy_noise,
-        'noise_clip': noise_clip,
-        'policy_delay': policy_delay,
-        'max_episodes': max_episodes,
-        'max_timesteps': max_timesteps,
-        'save_rate': save_rate,
-        'directory': directory,
-        'opponent_prefix': opponent_prefix
-    }
-    np.save(f"{directory}/args_num_{number}.npy", hyperparameters)
+    np.save(f"{directory}/args_num_{number}.npy", args)
 
     env = gym.make(env_name)
     state_dim = env.observation_space.shape[0]
@@ -87,9 +81,14 @@ def train(args):
     # init sub-rewards dict
     reward_dict = {}
 
+    time_queue = queue.Queue()
+    for i in range(policy_update_freq * 10):
+        time_queue.put(0)
+
     done_type = None
     # training procedure:
     for episode in range(1, max_episodes + 1):
+        start_time = time.time()
         state = env.reset()
         for t in range(max_timesteps):
             total_step += 1
@@ -121,14 +120,26 @@ def train(args):
                         if sub_reward.startswith("done_") and info[sub_reward] == 1:
                             done_type = sub_reward
                             break
-                policy.update(replay_buffer, t, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay)
-                break
 
-        print("Episode: {}\tStep: {}k\tReward: {}\tGoal: {} \tDone Type: {} \tEpi_step: {} ".format(episode,
-                                                                                                    int(total_step / 1000),
-                                                                                                    round(ep_reward, 2),
-                                                                                                    info["goal"],
-                                                                                                    done_type, ep_step))
+                if episode % policy_update_freq == 0:
+                    if multithread:
+                        # wait for last threads to finish
+                        running_threads = threading.enumerate()
+                        for thread in running_threads:
+                            if thread != threading.current_thread() and not isinstance(thread,tensorboard.summary.writer.event_file_writer._AsyncWriterThread):
+                                time_0 = time.time()
+                                thread.join()
+                                print("block:",time.time()-time_0)
+
+                        thread = threading.Thread(target=update_policy,
+                                                  kwargs={'policy': policy, 'replay_buffer': replay_buffer, 't': t,
+                                                          'batch_size': batch_size, 'gamma': gamma, 'polyak': polyak,
+                                                          'policy_noise': policy_noise, 'noise_clip': noise_clip,
+                                                          'policy_delay': policy_delay})
+                        thread.start()
+                    else:
+                        policy.update(replay_buffer, t, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay)
+                break
 
         # logging updates:
         writer.add_scalar("reward", ep_reward, global_step=episode)
@@ -136,11 +147,26 @@ def train(args):
         for r in reward_dict:
             writer.add_scalar(r, reward_dict[r], global_step=episode)
             reward_dict[r] = 0
-        ep_reward = 0
-        ep_step = 0
+
         # save checkpoint:
         if episode % save_rate == 0:
             policy.save(directory, int(total_step / 1000))
+
+        episode_time = time.time() - start_time
+        time_queue.put(episode_time)
+        time_queue.get()
+        print("Episode: {}\t"
+              "Step: {}k\t"
+              "Reward: {}\t"
+              "Goal: {} \t"
+              "Done Type: {}\t"
+              "Epi_step: {} \t"
+              "Avg_Epi_Time: {} ".format(episode, int(total_step / 1000),
+                                     round(ep_reward, 2),
+                                     info["goal"],
+                                     done_type, ep_step, sum(list(time_queue.queue)) / time_queue.qsize()))
+        ep_reward = 0
+        ep_step = 0
 
 
 if __name__ == '__main__':
@@ -165,5 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('--restore_step_k', type=int, default=4731, help='restore step k')
     parser.add_argument('--rl_opponent', type=bool, default=True, help='load a rl agent as opponent')
     parser.add_argument('--opponent_prefix', type=str, default="./models/SSL3v3Env-v0/1/4731k_")
+    parser.add_argument('--policy_update_freq', type=int, default=10, help='')
+    parser.add_argument('--multithread', type=bool, default=True, help='')
     args = parser.parse_args()
     train(args)
