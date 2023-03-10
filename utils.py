@@ -29,4 +29,12 @@ class ReplayBuffer:
             done.append(np.array(d, copy=False))
         
         return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done)
-    
+
+import uuid
+
+def get_MAC():
+    mac = uuid.getnode()
+    return mac
+
+if __name__ == '__main__':
+    print(get_MAC())
