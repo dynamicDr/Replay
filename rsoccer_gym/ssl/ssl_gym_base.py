@@ -51,7 +51,11 @@ class SSLBaseEnv(gym.Env):
     def step(self, action):
         self.steps += 1
         # Join other_agent action with environment actions
+        time1 = time.time()
         commands: List[Robot] = self._get_commands(action)
+        # print("command",time.time()-time1)
+
+        time1 = time.time()
         # Send command to simulator
         self.rsim.send_commands(commands)
         self.sent_commands = commands
@@ -59,11 +63,12 @@ class SSLBaseEnv(gym.Env):
         # Get Frame from simulator
         self.last_frame = self.frame
         self.frame = self.rsim.get_frame()
-
+        # print("sim",time.time()-time1)
+        time1 = time.time()
         # Calculate environment observation, reward and done condition
         observation = self._frame_to_observations()
         reward, done = self._calculate_reward_and_done()
-
+        # print("rw",time.time()-time1)
         return observation, reward, done, {}
 
     def reset(self):

@@ -1,5 +1,7 @@
 import math
 import random
+import time
+
 import gym
 import numpy as np
 from rsoccer_gym.Entities import Frame, Robot, Ball
@@ -42,7 +44,7 @@ class SSL3v3Env(SSLBaseEnv):
         super().__init__(field_type=field_type, n_robots_blue=3,
                          n_robots_yellow=3, time_step=0.025)
 
-
+        self.out_of_bounds_rule = 1
         self.action_space = gym.spaces.Box(low=-1, high=1,
                                            shape=(4,), dtype=np.float32)
 
@@ -87,8 +89,9 @@ class SSL3v3Env(SSLBaseEnv):
         return super().reset()
 
     def step(self, action):
+        time0=time.time()
         observation, reward, done, _ = super().step(action)
-
+        # print("stpe total",time.time()-time0)
         return observation, reward, done, self.reward_shaping_total
 
     def set_teammate(self,teammate):
@@ -270,12 +273,21 @@ class SSL3v3Env(SSLBaseEnv):
             return rbt.x > half_len - pen_len and abs(rbt.y) < half_pen_wid
 
         ball = self.frame.ball
-        robots = list(self.frame.robots_blue.values())
-        robots.extend(list(self.frame.robots_yellow.values()))
-        for robot in robots:
+
+        # out_of_bounds_rule 0:不存在出界规则，1:蓝方被控机器人出界结束，2:人和机器人被控结束
+        if self.out_of_bounds_rule == 1:
+            robot = self.frame.robots_blue[self.active_blue_robot_idx]
             if abs(robot.y) > half_wid or abs(robot.x) > half_len:
                 done = True
                 self.reward_shaping_total['done_robot_out'] += 1
+        elif self.out_of_bounds_rule == 2:
+            robots = list(self.frame.robots_blue.values())
+            robots.extend(list(self.frame.robots_yellow.values()))
+            for robot in robots:
+                if abs(robot.y) > half_wid or abs(robot.x) > half_len:
+                    done = True
+                    self.reward_shaping_total['done_robot_out'] += 1
+
         if abs(ball.y) > half_wid and not done:
             done = True
             self.reward_shaping_total['done_ball_out'] += 1
@@ -319,8 +331,17 @@ class SSL3v3Env(SSLBaseEnv):
         pen_len = self.field.penalty_length
         half_pen_wid = self.field.penalty_width / 2
 
-        def x():
-            return random.uniform(-self.field.length / 2 + 0.2, self.field.length / 2 - 0.2)
+        def ball_x():
+            return random.uniform(-self.field.length / 4, self.field.length / 4)
+
+        def ball_y():
+            return random.uniform(-self.field.width / 4, self.field.width / 4)
+
+        def blue_x():
+            return random.uniform(-self.field.length / 2 + 0.2, 0)
+
+        def yellow_x():
+            return random.uniform(0, self.field.length / 2 - 0.2)
 
         def y():
             return random.uniform(-self.field.width / 2 + 0.2, self.field.width / 2 - 0.2)
@@ -333,25 +354,23 @@ class SSL3v3Env(SSLBaseEnv):
         def in_gk_area(obj):
             return obj.x > half_len - pen_len and abs(obj.y) < half_pen_wid
 
-        pos_frame.ball = Ball(x=x(), y=y())
-        while in_gk_area(pos_frame.ball):
-            pos_frame.ball = Ball(x=x(), y=y())
         places = KDTree()
+        pos_frame.ball = Ball(x=ball_x(), y=ball_y())
 
         places.insert((pos_frame.ball.x, pos_frame.ball.y))
         min_dist = 0.2
         for i in range(self.n_robots_blue):
-            pos = (x(), y())
+            pos = (blue_x(), y())
             while places.get_nearest(pos)[1] < min_dist:
-                pos = (x(), y())
+                pos = (blue_x(), y())
 
             places.insert(pos)
             pos_frame.robots_blue[i] = Robot(x=pos[0], y=pos[1], theta=theta())
 
         for i in range(self.n_robots_yellow):
-            pos = (x(), y())
+            pos = (yellow_x(), y())
             while places.get_nearest(pos)[1] < min_dist:
-                pos = (x(), y())
+                pos = (yellow_x(), y())
 
             places.insert(pos)
             pos_frame.robots_yellow[i] = Robot(x=pos[0], y=pos[1], theta=theta())
@@ -382,7 +401,6 @@ class SSL3v3Env(SSLBaseEnv):
         # Calculate new ball dist
         ball = self.frame.ball
         robot = self.frame.robots_blue[self.active_blue_robot_idx]
-        ball_pos = np.array([ball.x, ball.y])
         robot_pos = np.array([robot.x, robot.y])
         dist = np.linalg.norm(robot_pos - last_ball_pos)
 

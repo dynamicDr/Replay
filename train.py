@@ -101,6 +101,7 @@ def train(args):
     for episode in range(1, max_episodes + 1):
         start_time = time.time()
         state = env.reset()
+        time1 = time.time()
         for t in range(max_timesteps):
             total_step += 1
             ep_step += 1
@@ -109,7 +110,9 @@ def train(args):
             action = action + np.random.normal(0, exploration_noise, size=env.action_space.shape[0])
             action = action.clip(env.action_space.low, env.action_space.high)
             # take action in env:
+
             next_state, reward, done, info = env.step(action)
+
             # env.render()
             for sub_reward in info:
                 if sub_reward.startswith("rw_"):
@@ -131,25 +134,6 @@ def train(args):
                         if sub_reward.startswith("done_") and info[sub_reward] == 1:
                             done_type = sub_reward
                             break
-
-                if episode % policy_update_freq == 0:
-                    if multithread:
-                        # wait for last threads to finish
-                        running_threads = threading.enumerate()
-                        for thread in running_threads:
-                            if thread != threading.current_thread() and not isinstance(thread,tensorboard.summary.writer.event_file_writer._AsyncWriterThread):
-                                time_0 = time.time()
-                                thread.join()
-                                print("block:",time.time()-time_0)
-
-                        thread = threading.Thread(target=update_policy,
-                                                  kwargs={'policy': policy, 'replay_buffer': replay_buffer, 't': t,
-                                                          'batch_size': batch_size, 'gamma': gamma, 'polyak': polyak,
-                                                          'policy_noise': policy_noise, 'noise_clip': noise_clip,
-                                                          'policy_delay': policy_delay})
-                        thread.start()
-                    else:
-                        policy.update(replay_buffer, t, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay)
                 break
 
         # logging updates:
@@ -166,6 +150,11 @@ def train(args):
         episode_time = time.time() - start_time
         time_queue.put(episode_time)
         time_queue.get()
+        if episode < time_queue.qsize():
+            avg_epi_time = sum(list(time_queue.queue)) / episode
+        else:
+            avg_epi_time = sum(list(time_queue.queue)) / time_queue.qsize()
+
         print("Episode: {}\t"
               "Step: {}k\t"
               "Reward: {}\t"
@@ -175,7 +164,7 @@ def train(args):
               "Avg_Epi_Time: {} ".format(episode, int(total_step / 1000),
                                      round(ep_reward, 2),
                                      info["goal"],
-                                     done_type, ep_step, sum(list(time_queue.queue)) / time_queue.qsize()))
+                                     done_type, ep_step, avg_epi_time))
         ep_reward = 0
         ep_step = 0
 
