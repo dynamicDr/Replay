@@ -53,6 +53,7 @@ class VSSEnv(VSSBaseEnv):
     """
 
     def __init__(self):
+        print("===============VSS")
         super().__init__(field_type=0, n_robots_blue=3, n_robots_yellow=3,
                          time_step=0.025)
 
@@ -153,19 +154,16 @@ class VSSEnv(VSSBaseEnv):
         w_ball_grad = 0.8
         w_energy = 2e-4
         if self.reward_shaping_total is None:
-            self.reward_shaping_total = {'goal_score': 0, 'move': 0,
-                                         'ball_grad': 0, 'energy': 0,
-                                         'goals_blue': 0, 'goals_yellow': 0}
+            self.reward_shaping_total = {'goal': 0, 'rw_move': 0,
+                                         'rw_ball_grad': 0, 'rw_energy': 0}
 
         # Check if goal ocurred
         if self.frame.ball.x > (self.field.length / 2):
-            self.reward_shaping_total['goal_score'] += 1
-            self.reward_shaping_total['goals_blue'] += 1
+            self.reward_shaping_total['goal'] += 1
             reward = 10
             goal = True
         elif self.frame.ball.x < -(self.field.length / 2):
-            self.reward_shaping_total['goal_score'] -= 1
-            self.reward_shaping_total['goals_yellow'] += 1
+            self.reward_shaping_total['goal'] -= 1
             reward = -10
             goal = True
         else:
@@ -182,10 +180,10 @@ class VSSEnv(VSSBaseEnv):
                     w_ball_grad * grad_ball_potential + \
                     w_energy * energy_penalty
 
-                self.reward_shaping_total['move'] += w_move * move_reward
-                self.reward_shaping_total['ball_grad'] += w_ball_grad \
+                self.reward_shaping_total['rw_move'] += w_move * move_reward
+                self.reward_shaping_total['rw_ball_grad'] += w_ball_grad \
                     * grad_ball_potential
-                self.reward_shaping_total['energy'] += w_energy \
+                self.reward_shaping_total['rw_energy'] += w_energy \
                     * energy_penalty
 
         return reward, goal

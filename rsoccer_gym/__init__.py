@@ -81,6 +81,10 @@ register(id='SSL3v3Env-v0',
          entry_point='rsoccer_gym.ssl.my_envs:SSL3v3Env',
          max_episode_steps=1200
          )
+register(id='SSL1v1Env-v0',
+         entry_point='rsoccer_gym.ssl.my_envs:SSL1v1Env',
+         max_episode_steps=1200
+         )
 register(id='SSL3v34AttackEnv-v0',
          entry_point='rsoccer_gym.ssl.my_envs:SSL3v34AttackEnv',
          max_episode_steps=1200

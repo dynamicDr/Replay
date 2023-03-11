@@ -13,8 +13,8 @@ import os
 import utils
 from TD3 import TD3
 from utils import ReplayBuffer
-from rsoccer_gym.vss.env_ma import *
-
+from rsoccer_gym import *
+from distutils.util import strtobool
 
 def update_policy(policy, replay_buffer, t, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay):
     policy.update(replay_buffer=replay_buffer, n_iter=t, batch_size=batch_size, gamma=gamma, polyak=polyak,
@@ -47,6 +47,7 @@ def train(args):
     policy_update_freq = args.policy_update_freq
     multithread = args.multithread
     device = args.device
+    render = args.render
     if not torch.cuda.is_available():
         device = "cpu"
 
@@ -64,6 +65,7 @@ def train(args):
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
 
+    print(rl_opponent)
     if rl_opponent:
         opponent_agent = TD3(lr, state_dim, action_dim, max_action, device=device)
         opponent_agent.load(opponent_prefix)
@@ -112,8 +114,8 @@ def train(args):
             # take action in env:
 
             next_state, reward, done, info = env.step(action)
-
-            # env.render()
+            if render:
+                env.render()
             for sub_reward in info:
                 if sub_reward.startswith("rw_"):
                     if not sub_reward in reward_dict.keys():
@@ -135,6 +137,28 @@ def train(args):
                             done_type = sub_reward
                             break
                 break
+
+        if episode % policy_update_freq == 0:
+            if multithread:
+                # wait for last threads to finish
+                running_threads = threading.enumerate()
+                for thread in running_threads:
+                    if thread != threading.current_thread() and not isinstance(thread,
+                                                                               tensorboard.summary.writer.event_file_writer._AsyncWriterThread):
+                        time_0 = time.time()
+                        thread.join()
+                        print("block:", time.time() - time_0)
+
+                thread = threading.Thread(target=update_policy,
+                                          kwargs={'policy': policy, 'replay_buffer': replay_buffer, 't': 50*policy_update_freq,
+                                                  'batch_size': batch_size, 'gamma': gamma, 'polyak': polyak,
+                                                  'policy_noise': policy_noise, 'noise_clip': noise_clip,
+                                                  'policy_delay': policy_delay})
+                thread.start()
+            else:
+                time_0 = time.time()
+                policy.update(replay_buffer, 50*policy_update_freq, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay)
+                # print("update:", time.time() - time_0)
 
         # logging updates:
         writer.add_scalar("reward", ep_reward, global_step=episode)
@@ -171,11 +195,12 @@ def train(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Training arguments')
+    parser.register('type', 'boolean', strtobool)
     parser.add_argument('--env_name', type=str, default='SSL3v34AttackEnv-v0', help='environment name')
     parser.add_argument('--number', type=int, default=0, help='number')
     parser.add_argument('--random_seed', type=int, default=0, help='random seed')
     parser.add_argument('--gamma', type=float, default=0.99, help='discount for future rewards')
-    parser.add_argument('--batch_size', type=int, default=100, help='num of transitions sampled from replay buffer')
+    parser.add_argument('--batch_size', type=int, default=1024, help='num of transitions sampled from replay buffer')
     parser.add_argument('--lr', type=float, default=0.00001, help='learning rate')
     parser.add_argument('--exploration_noise', type=float, default=0.1, help='exploration noise')
     parser.add_argument('--polyak', type=float, default=0.995, help='target policy update parameter (1-tau)')
@@ -185,14 +210,16 @@ if __name__ == '__main__':
     parser.add_argument('--max_episodes', type=int, default=10000000000000, help='max num of episodes')
     parser.add_argument('--max_timesteps', type=int, default=200, help='max timesteps in one episode')
     parser.add_argument('--save_rate', type=int, default=5000, help='save the check point per ? episode')
-    parser.add_argument('--restore', type=bool, default=True, help='restore from checkpoint or not')
+    parser.add_argument('--restore', type='boolean', default=False, help='restore from checkpoint or not')
     parser.add_argument('--restore_env_name', type=str, default="", help='')
     parser.add_argument('--restore_num', type=int, default=1, help='restore number')
     parser.add_argument('--restore_step_k', type=int, default=4731, help='restore step k')
-    parser.add_argument('--rl_opponent', type=bool, default=True, help='load a rl agent as opponent')
-    parser.add_argument('--opponent_prefix', type=str, default="./models/SSL3v3Env-v0/1/4731k_")
-    parser.add_argument('--policy_update_freq', type=int, default=10, help='')
-    parser.add_argument('--multithread', type=bool, default=True, help='')
+    parser.add_argument('--rl_opponent', type='boolean', default=False, help='load a rl agent as opponent')
+    parser.add_argument('--opponent_prefix', type=str, default="")
+    parser.add_argument('--policy_update_freq', type=int, default=1, help='')
+    parser.add_argument('--multithread', type='boolean', default=True, help='')
     parser.add_argument('--device', type=str, default="cuda", help='')
+    parser.add_argument('--render', type='boolean', default=False, help='')
     args = parser.parse_args()
+    print(args)
     train(args)

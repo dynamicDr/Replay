@@ -63,6 +63,8 @@ class TD3:
         
         for i in range(n_iter):
             # Sample a batch of transitions from replay buffer:
+            if replay_buffer.size < batch_size:
+                break
             state, action_, reward, next_state, done = replay_buffer.sample(batch_size)
             state = torch.FloatTensor(state).to(self.device)
             action = torch.FloatTensor(action_).to(self.device)
@@ -115,7 +117,6 @@ class TD3:
                 
                 for param, target_param in zip(self.critic_2.parameters(), self.critic_2_target.parameters()):
                     target_param.data.copy_( (polyak * target_param.data) + ((1-polyak) * param.data))
-                    
                 
     def save(self, directory, step):
         step = str(step)
