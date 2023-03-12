@@ -9,7 +9,7 @@ import torch
 from rsoccer_gym.Entities import Frame, Robot
 from rsoccer_gym.vss.vss_gym_base import VSSBaseEnv
 from rsoccer_gym.vss.env_gk.attacker.models import DDPGActor, GaussianPolicy
-
+from ..random_agent import RandomAgent
 
 class rSimVSSGK(VSSBaseEnv):
     """
@@ -94,7 +94,7 @@ class rSimVSSGK(VSSBaseEnv):
                                                 high=1,
                                                 shape=(40,),
                                                 dtype=np.float32)
-
+        self.v_wheel_deadzone = 0.05
         self.last_frame = None
         self.energy_penalty = 0
         self.reward_shaping_total = None
@@ -102,6 +102,7 @@ class rSimVSSGK(VSSBaseEnv):
         self.previous_ball_direction = []
         self.isInside = False
         self.ballInsideArea = False
+        self.ramdom_agent = RandomAgent(self.action_space)
         print('Environment initialized')
     
     def step(self, action):
@@ -181,18 +182,18 @@ class rSimVSSGK(VSSBaseEnv):
 
         # Send random commands to the other robots
         for i in range(1, self.n_robots_blue):
-            actions = self.ou_actions[i].sample()
+            actions = self.ramdom_agent.select_action(None)
             v_wheel0, v_wheel1 = self._actions_to_v_wheels(actions)
             commands.append(Robot(yellow=False, id=i, v_wheel0=v_wheel0,
                                   v_wheel1=v_wheel1))
 
-        atk_action = self.attacker.get_action(self._atk_obs())
+        atk_action = self.attacker.select_action(self._atk_obs())
         v_wheel0, v_wheel1 = self._actions_to_v_wheels(atk_action)
         # we invert the speed on the wheels because of the attacker's reflection on the Y axis.
         commands.append(Robot(yellow=True, id=0, v_wheel0=v_wheel1,
                               v_wheel1=v_wheel0))
         for i in range(1, self.n_robots_yellow):
-            actions = self.ou_actions[self.n_robots_blue+i].sample()
+            actions = self.ramdom_agent.select_action(None)
             v_wheel0, v_wheel1 = self._actions_to_v_wheels(actions)
             commands.append(Robot(yellow=False, id=i, v_wheel0=v_wheel0,
                                   v_wheel1=v_wheel1))
@@ -222,7 +223,7 @@ class rSimVSSGK(VSSBaseEnv):
 
     def _calculate_future_point(self, pos, vel):
         if vel[0] > 0:
-            goal_center = np.array([self.field_params['field_length'] / 2, 0])
+            goal_center = np.array([self.field.length / 2, 0])
             pos = np.array(pos)
             dist = np.linalg.norm(goal_center - pos)
             time_to_goal = dist/np.sqrt(vel[0]**2 + vel[1]**2)
@@ -240,7 +241,7 @@ class rSimVSSGK(VSSBaseEnv):
         This indicates rather the robot is moving towards the ball or not.
         '''
         
-        if self.frame.ball.x < self.field_params['field_length'] / 4  - 5:
+        if self.frame.ball.x < self.field.length / 4  - 5:
             ball = np.array([self.frame.ball.x, self.frame.ball.y])
             robot = np.array([self.frame.robots_blue[0].x,
                             self.frame.robots_blue[0].y])
@@ -285,7 +286,7 @@ class rSimVSSGK(VSSBaseEnv):
                         self.frame.robots_blue[0].y])
         ball = np.array([self.frame.ball.x, self.frame.ball.y])
         distance_gk_ball = np.linalg.norm(pos - ball) * 100 
-        field_half_length = self.field_params['field_length'] / 2
+        field_half_length = self.field.length / 2
 
         defense_reward = 0
         if distance_gk_ball < 8 and not self.isInside:
@@ -314,9 +315,9 @@ class rSimVSSGK(VSSBaseEnv):
         Difference of potential of the ball in time_step seconds.
         '''
         # Calculate ball potential
-        length_cm = self.field_params['field_length'] * 100
-        half_lenght = (self.field_params['field_length'] / 2.0)\
-            + self.field_params['goal_depth']
+        length_cm = self.field.length * 100
+        half_lenght = (self.field.length / 2.0)\
+            + self.field.goal_depth
 
         # distance to defence
         dx_d = (half_lenght + self.frame.ball.x) * 100
@@ -359,7 +360,7 @@ class rSimVSSGK(VSSBaseEnv):
         w_blva = 2.0
 
         if self.reward_shaping_total is None:
-            self.reward_shaping_total = {'goal_score': 0, 'move': 0,
+            self.reward_shaping_total = {'goal': 0, 'move': 0,
                                          'ball_grad': 0, 'energy': 0,
                                          'goals_blue': 0, 'goals_yellow': 0,
                                          'defense': 0,'ball_leave_area': 0,
@@ -389,9 +390,9 @@ class rSimVSSGK(VSSBaseEnv):
                 done = True
 
             # If the enemy scored a goal
-            if self.frame.ball.x < -(self.field_params['field_length'] / 2):
+            if self.frame.ball.x < -(self.field.length / 2):
                 self.reward_shaping_total['goals_yellow'] += 1
-                self.reward_shaping_total['goal_score'] -= 1
+                self.reward_shaping_total['goal'] -= 1
                 goal_score = -2 
                 self.ballInsideArea = False
 
@@ -402,7 +403,7 @@ class rSimVSSGK(VSSBaseEnv):
                 move_reward = self.__move_reward()
                 move_y_reward = self.__move_reward_y()
                 ball_defense_reward = self.__defended_ball() 
-                dist_robot_own_goal_bar = -self.field_params['field_length'] / \
+                dist_robot_own_goal_bar = -self.field.length / \
                     2 + 0.15 - self.frame.robots_blue[0].x
 
                 reward = w_move_y * move_y_reward + \
@@ -426,8 +427,8 @@ class rSimVSSGK(VSSBaseEnv):
         Goalie starts at the center of the goal, striker and ball randomly.
         Other robots also starts at random positions.
         """
-        field_half_length = self.field_params['field_length'] / 2
-        field_half_width = self.field_params['field_width'] / 2
+        field_half_length = self.field.length / 2
+        field_half_width = self.field.width / 2
         def x(): return random.uniform(-field_half_length + 0.1,
                                        field_half_length - 0.1)
         def y(): return random.uniform(-field_half_width + 0.1,
