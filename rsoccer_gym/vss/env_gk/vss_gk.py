@@ -386,6 +386,7 @@ class rSimVSSGK(VSSBaseEnv):
                or self.frame.ball.y < -0.35):
                 ball_leave_area_reward = 1 
                 self.ballInsideArea = False
+                self.reward_shaping_total['goal'] += 1
                 done = True
 
             # If the enemy scored a goal
