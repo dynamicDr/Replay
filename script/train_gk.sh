@@ -24,7 +24,7 @@ nohup python3 -u train.py \
     --policy_update_freq=1 \
     --multithread=False \
     --device="cpu" \
-    --render=True\
+    --render=False\
     --replay=default \
     > nohup.out 2>&1 &
 disown
