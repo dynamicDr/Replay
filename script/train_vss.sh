@@ -2,7 +2,7 @@
 
 nohup python3 -u train.py \
     --env_name="VSS-v0" \
-    --number=0 \
+    --number=-1 \
     --random_seed=0 \
     --gamma=0.99 \
     --batch_size=1024 \
@@ -25,6 +25,7 @@ nohup python3 -u train.py \
     --multithread=False \
     --device="cpu" \
     --render=False\
+    --replay=proportional_PER \
     > nohup.out 2>&1 &
 disown
 tail -fn 50 nohup.out

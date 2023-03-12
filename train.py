@@ -12,7 +12,10 @@ import os
 
 import utils
 from TD3 import TD3
-from utils import ReplayBuffer
+from replays.default_replay import DefaultReplay
+from replays.proportional_PER.proportional import ProportionalPER
+from replays.rank_PER.rank_based import RankPER
+
 from rsoccer_gym import *
 from distutils.util import strtobool
 
@@ -48,6 +51,8 @@ def train(args):
     multithread = args.multithread
     device = args.device
     render = args.render
+    replay = args.replay
+    replay_max_size = args.replay_max_size
     if not torch.cuda.is_available():
         device = "cpu"
 
@@ -74,7 +79,15 @@ def train(args):
     policy = TD3(lr, state_dim, action_dim, max_action, device=device)
     if restore:
         policy.load(restore_prefix)
-    replay_buffer = ReplayBuffer()
+
+    if replay == "default":
+        replay_buffer = DefaultReplay(replay_max_size,batch_size)
+    elif replay == "rank_PER":
+        replay_buffer = RankPER(replay_max_size,batch_size)
+    elif replay == "proportional_PER":
+        replay_buffer = ProportionalPER(replay_max_size,batch_size)
+    else:
+        raise Exception(f"No replay type found: {replay}")
 
     if random_seed:
         print("Random Seed: {}".format(random_seed))
@@ -121,7 +134,7 @@ def train(args):
                     if not sub_reward in reward_dict.keys():
                         reward_dict[sub_reward] = 0
                     reward_dict[sub_reward] += info[sub_reward]
-            replay_buffer.add((state, action, reward, next_state, float(done)))
+            replay_buffer.add((state, action, reward, next_state, float(done)),priority=1)
             state = next_state
             ep_reward += reward
 
@@ -220,6 +233,8 @@ if __name__ == '__main__':
     parser.add_argument('--multithread', type='boolean', default=True, help='')
     parser.add_argument('--device', type=str, default="cuda", help='')
     parser.add_argument('--render', type='boolean', default=False, help='')
+    parser.add_argument('--replay', type=str, default="default", help='')
+    parser.add_argument('--replay_max_size', type=int, default=5e5, help='')
     args = parser.parse_args()
     print(args)
     train(args)
