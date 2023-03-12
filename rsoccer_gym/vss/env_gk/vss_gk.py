@@ -102,22 +102,14 @@ class rSimVSSGK(VSSBaseEnv):
         self.previous_ball_direction = []
         self.isInside = False
         self.ballInsideArea = False
-        self.load_atk()
         print('Environment initialized')
     
     def step(self, action):
         observation, reward, done, _ = super().step(action)
         return observation, reward, done, self.reward_shaping_total
 
-    def load_atk(self):
-        device = torch.device('cuda')
-        atk_path = os.path.dirname(os.path.realpath(
-            __file__)) + '/attacker/atk_model.pth'
-        self.attacker = DDPGActor(40, 2)
-        print(atk_path)
-        atk_checkpoint = torch.load(atk_path, map_location=device)
-        self.attacker.load_state_dict(atk_checkpoint['state_dict_act'])
-        self.attacker.eval()
+    def set_opponent_agent(self,opponent_agent):
+        self.attacker = opponent_agent
 
     def _atk_obs(self):
         observation = []

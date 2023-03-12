@@ -75,7 +75,7 @@ def train(args):
         opponent_agent = TD3(lr, state_dim, action_dim, max_action, device=device)
         opponent_agent.load(opponent_prefix)
         env.set_opponent_agent(opponent_agent)
-        env.set_opponent_teammate_agent(opponent_agent)
+        # env.set_opponent_teammate_agent(opponent_agent)
 
     policy = TD3(lr, state_dim, action_dim, max_action, device=device)
     if restore:
