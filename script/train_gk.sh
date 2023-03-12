@@ -19,8 +19,8 @@ nohup python3 -u train.py \
     --restore_num=8 \
     --restore_step_k=1469 \
     --restore_env_name="SSL3v3Env-v0" \
-    --rl_opponent=False \
-    --opponent_prefix="./models/SSL3v3Env-v0/1/4731k_" \
+    --rl_opponent=True \
+    --opponent_prefix="./models/VSS-v0/0/7408k_" \
     --policy_update_freq=1 \
     --multithread=False \
     --device="cpu" \
