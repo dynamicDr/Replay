@@ -98,7 +98,7 @@ class SSL3v3Env(SSLBaseEnv):
         self.teammate = teammate
 
     def set_opponent_by_idx(self,idx,opponent):
-        self.opponent_agent = opponent
+        self.opponent_agentopponent_agent = opponent
 
     def construct_observation(self,main_robot_team,main_robot_idx):
         assert main_robot_team == "blue" or "yellow"

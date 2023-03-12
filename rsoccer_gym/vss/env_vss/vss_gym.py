@@ -8,7 +8,7 @@ import numpy as np
 from rsoccer_gym.Entities import Frame, Robot, Ball
 from rsoccer_gym.vss.vss_gym_base import VSSBaseEnv
 from rsoccer_gym.Utils import KDTree
-
+from ..random_agent import RandomAgent
 
 class VSSEnv(VSSBaseEnv):
     """This environment controls a single robot in a VSS soccer League 3v3 match 
@@ -63,17 +63,21 @@ class VSSEnv(VSSBaseEnv):
                                                 high=self.NORM_BOUNDS,
                                                 shape=(40, ), dtype=np.float32)
 
+
+
         # Initialize Class Atributes
         self.previous_ball_potential = None
         self.actions: Dict = None
         self.reward_shaping_total = None
         self.v_wheel_deadzone = 0.05
 
-        self.ou_actions = []
-        for i in range(self.n_robots_blue + self.n_robots_yellow):
-            self.ou_actions.append(
-                OrnsteinUhlenbeckAction(self.action_space, dt=self.time_step)
-            )
+        # =====================================
+        self.active_blue_robot_idx = 0
+        self.active_yellow_robot_idx = 0
+        ramdom_agent = RandomAgent(self.action_space)
+        self.opponent_agent = ramdom_agent
+        self.opponent_teammate = ramdom_agent
+        self.teammate = ramdom_agent
 
         print('Environment initialized')
 
@@ -81,71 +85,134 @@ class VSSEnv(VSSBaseEnv):
         self.actions = None
         self.reward_shaping_total = None
         self.previous_ball_potential = None
-        for ou in self.ou_actions:
-            ou.reset()
 
         return super().reset()
+
+    def set_opponent_agent(self,agent):
+        self.opponent_agent = agent
+
+    def set_opponent_teammate_agent(self,agent):
+        self.opponent_teammate = agent
+
+    def set_teammate_agent(self,agent):
+        self.teammate = agent
 
     def step(self, action):
         observation, reward, done, _ = super().step(action)
         return observation, reward, done, self.reward_shaping_total
 
-    def _frame_to_observations(self):
+    def construct_observation(self,main_robot_team,main_robot_idx):
+        assert main_robot_team == "blue" or "yellow"
+
+        main_robot = None
+        teammates = []
+        opponents = []
+        blue_robot_set= set(range(self.n_robots_blue))
+        yellow_robot_set= set(range(self.n_robots_yellow))
+        if main_robot_team == "blue":
+            sign = 1
+            main_robot = self.frame.robots_blue[main_robot_idx]
+            blue_robot_set.remove(main_robot_idx)
+            for idx in blue_robot_set:
+                teammates.append(self.frame.robots_blue[idx])
+            for idx in yellow_robot_set:
+                opponents.append(self.frame.robots_yellow[idx])
+        else:
+            sign = -1
+            main_robot = self.frame.robots_yellow[main_robot_idx]
+            yellow_robot_set.remove(main_robot_idx)
+            for idx in yellow_robot_set:
+                teammates.append(self.frame.robots_yellow[idx])
+            for idx in blue_robot_set:
+                opponents.append(self.frame.robots_blue[idx])
 
         observation = []
 
-        observation.append(self.norm_pos(self.frame.ball.x))
+        # 球的观察
+        observation.append(sign * self.norm_pos(self.frame.ball.x))
         observation.append(self.norm_pos(self.frame.ball.y))
-        observation.append(self.norm_v(self.frame.ball.v_x))
+        observation.append(sign * self.norm_v(self.frame.ball.v_x))
         observation.append(self.norm_v(self.frame.ball.v_y))
 
-        for i in range(self.n_robots_blue):
-            observation.append(self.norm_pos(self.frame.robots_blue[i].x))
-            observation.append(self.norm_pos(self.frame.robots_blue[i].y))
-            observation.append(
-                np.sin(np.deg2rad(self.frame.robots_blue[i].theta))
-            )
-            observation.append(
-                np.cos(np.deg2rad(self.frame.robots_blue[i].theta))
-            )
-            observation.append(self.norm_v(self.frame.robots_blue[i].v_x))
-            observation.append(self.norm_v(self.frame.robots_blue[i].v_y))
-            observation.append(self.norm_w(self.frame.robots_blue[i].v_theta))
+        # 自己的观察
+        observation.append(sign * self.norm_pos(main_robot.x))
+        observation.append(self.norm_pos(main_robot.y))
+        observation.append(
+            np.sin(np.deg2rad(main_robot.theta))
+        )
+        observation.append(
+            sign * np.cos(np.deg2rad(main_robot.theta))
+        )
+        observation.append(sign * self.norm_v(main_robot.v_x))
+        observation.append(self.norm_v(main_robot.v_y))
+        observation.append(sign * self.norm_w(main_robot.v_theta))
 
-        for i in range(self.n_robots_yellow):
-            observation.append(self.norm_pos(self.frame.robots_yellow[i].x))
-            observation.append(self.norm_pos(self.frame.robots_yellow[i].y))
-            observation.append(self.norm_v(self.frame.robots_yellow[i].v_x))
-            observation.append(self.norm_v(self.frame.robots_yellow[i].v_y))
+        for robot in teammates:
+            observation.append(sign * self.norm_pos(robot.x))
+            observation.append(self.norm_pos(robot.y))
             observation.append(
-                self.norm_w(self.frame.robots_yellow[i].v_theta)
+                np.sin(np.deg2rad(robot.theta))
             )
+            observation.append(
+                sign * np.cos(np.deg2rad(robot.theta))
+            )
+            observation.append(sign * self.norm_v(robot.v_x))
+            observation.append(self.norm_v(robot.v_y))
+            observation.append(sign * self.norm_w(robot.v_theta))
+
+        for robot in opponents:
+            observation.append(sign * self.norm_pos(robot.x))
+            observation.append(self.norm_pos(robot.y))
+            observation.append(sign * self.norm_v(robot.v_x))
+            observation.append(self.norm_v(robot.v_y))
+            observation.append(sign * self.norm_w(robot.v_theta))
 
         return np.array(observation, dtype=np.float32)
 
-    def _get_commands(self, actions):
+    def _frame_to_observations(self):
+        observation = self.construct_observation("blue", self.active_blue_robot_idx)
+        return observation
+
+
+    def _get_commands(self, active_action):
         commands = []
-        self.actions = {}
+        # Blue robot
+        for idx in range(self.n_robots_blue):
+            if idx == self.active_blue_robot_idx:
+                obs = self.construct_observation("blue", idx)
+                action = active_action
+            else:
+                if isinstance(self.teammate,RandomAgent):
+                    obs = None
+                else:
+                    obs = self.construct_observation("blue", idx)
+                action = self.teammate.select_action(obs)
+            v_wheel0, v_wheel1 = self._actions_to_v_wheels(action)
+            cmd = Robot(yellow=False, id=idx,v_wheel0=v_wheel0,v_wheel1=v_wheel1)
+            commands.append(cmd)
 
-        self.actions[0] = actions
-        v_wheel0, v_wheel1 = self._actions_to_v_wheels(actions)
-        commands.append(Robot(yellow=False, id=0, v_wheel0=v_wheel0,
-                              v_wheel1=v_wheel1))
+        # Yellow robot
+        for idx in range(self.n_robots_yellow):
+            if idx == self.active_yellow_robot_idx:
+                if isinstance(self.opponent_agent,RandomAgent):
+                    obs = None
+                else:
+                    obs = self.construct_observation("yellow", idx)
+                action = self.opponent_agent.select_action(obs)
 
-        # Send random commands to the other robots
-        for i in range(1, self.n_robots_blue):
-            actions = self.ou_actions[i].sample()
-            self.actions[i] = actions
-            v_wheel0, v_wheel1 = self._actions_to_v_wheels(actions)
-            commands.append(Robot(yellow=False, id=i, v_wheel0=v_wheel0,
-                                  v_wheel1=v_wheel1))
-        for i in range(self.n_robots_yellow):
-            actions = self.ou_actions[self.n_robots_blue+i].sample()
-            v_wheel0, v_wheel1 = self._actions_to_v_wheels(actions)
-            commands.append(Robot(yellow=True, id=i, v_wheel0=v_wheel0,
-                                  v_wheel1=v_wheel1))
-
+            else:
+                if isinstance(self.opponent_teammate,RandomAgent):
+                    obs = None
+                else:
+                    obs = self.construct_observation("yellow", idx)
+                action = self.opponent_teammate.select_action(obs)
+            v_wheel0, v_wheel1 = self._actions_to_v_wheels(action)
+            # 对手的轮速左右相反
+            cmd = Robot(yellow=True, id=idx, v_wheel0=v_wheel1, v_wheel1=v_wheel0)
+            commands.append(cmd)
+        self.commands = commands
         return commands
+
 
     def _calculate_reward_and_done(self):
         reward = 0

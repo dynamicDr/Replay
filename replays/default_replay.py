@@ -31,4 +31,4 @@ class DefaultReplay(BaseReplay):
             next_state.append(np.array(s_, copy=False))
             done.append(np.array(d, copy=False))
 
-        return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done)
+        return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done),None,None

@@ -74,7 +74,8 @@ def train(args):
     if rl_opponent:
         opponent_agent = TD3(lr, state_dim, action_dim, max_action, device=device)
         opponent_agent.load(opponent_prefix)
-        env.set_opponent_by_idx(0, opponent_agent)
+        env.set_opponent_agent(opponent_agent)
+        env.set_opponent_teammate_agent(opponent_agent)
 
     policy = TD3(lr, state_dim, action_dim, max_action, device=device)
     if restore:
@@ -110,6 +111,9 @@ def train(args):
     time_queue = queue.Queue()
     for i in range(policy_update_freq * 10):
         time_queue.put(0)
+    goal_queue = queue.Queue()
+    for i in range(100):
+        goal_queue.put(0)
 
     done_type = None
     # training procedure:
@@ -187,6 +191,8 @@ def train(args):
         episode_time = time.time() - start_time
         time_queue.put(episode_time)
         time_queue.get()
+        goal_queue.put(info["goal"])
+        goal_queue.get()
         if episode < time_queue.qsize():
             avg_epi_time = sum(list(time_queue.queue)) / episode
         else:
@@ -198,10 +204,11 @@ def train(args):
               "Goal: {} \t"
               "Done Type: {}\t"
               "Epi_step: {} \t"
+              "Goal_in_100_Epi: {} \t"
               "Avg_Epi_Time: {} ".format(episode, int(total_step / 1000),
                                      round(ep_reward, 2),
                                      info["goal"],
-                                     done_type, ep_step, avg_epi_time))
+                                     done_type, ep_step, sum(list(goal_queue.queue)), avg_epi_time))
         ep_reward = 0
         ep_step = 0
 

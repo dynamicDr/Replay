@@ -60,12 +60,14 @@ class TD3:
         return self.actor(state).cpu().data.numpy().flatten()
     
     def update(self, replay_buffer, n_iter, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay):
-        print(replay_buffer.size)
         for i in range(n_iter):
             # Sample a batch of transitions from replay buffer:
             if replay_buffer.size < batch_size:
                 return
-            state, action_, reward, next_state, done = replay_buffer.sample(batch_size)
+            sample = replay_buffer.sample(batch_size)
+            if sample is None:
+                return
+            state, action_, reward, next_state, done, _, _ = sample
             state = torch.FloatTensor(state).to(self.device)
             action = torch.FloatTensor(action_).to(self.device)
             reward = torch.FloatTensor(reward).reshape((batch_size,1)).to(self.device)
