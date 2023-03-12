@@ -25,7 +25,7 @@ nohup python3 -u train.py \
     --multithread=False \
     --device="cpu" \
     --render=False\
-    --replay=proportional_PER \
+    --replay=default \
     > nohup.out 2>&1 &
 disown
 tail -fn 50 nohup.out
