@@ -359,12 +359,11 @@ class rSimVSSGK(VSSBaseEnv):
         w_distance = 0.1
         w_blva = 2.0
 
-        if self.reward_shaping_total is None:
-            self.reward_shaping_total = {'goal': 0, 'move': 0,
-                                         'ball_grad': 0, 'energy': 0,
-                                         'goals_blue': 0, 'goals_yellow': 0,
-                                         'defense': 0,'ball_leave_area': 0,
-                                         'move_y': 0, 'distance_own_goal_bar': 0 }
+        self.reward_shaping_total = {'goal': 0, 'move': 0,
+                                     'ball_grad': 0, 'energy': 0,
+                                     'goals_blue': 0, 'goals_yellow': 0,
+                                     'defense': 0,'ball_leave_area': 0,
+                                     'move_y': 0, 'distance_own_goal_bar': 0 }
 
         # This case the Goalkeeper leaves the gk area
         if self.frame.robots_blue[0].x > -0.63 or self.frame.robots_blue[0].y > 0.4 \
