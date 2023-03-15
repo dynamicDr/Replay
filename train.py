@@ -60,11 +60,8 @@ def train(args):
         device = "cpu"
 
     # save setting
-    mac = utils.get_MAC()
-    if mac==194042949069159:
-        directory = f"./models/{env_name}/{number}"
-    else:
-        directory = f"./models_{mac}/{env_name}/{number}"
+    directory = f"./models/{env_name}/{number}"
+
     os.makedirs(directory, exist_ok=True)
     np.save(f"{directory}/args_num_{number}.npy", args)
 
@@ -116,10 +113,8 @@ def train(args):
     ep_step = 0
     total_step = 0
 
-    if mac==194042949069159:
-        writer = SummaryWriter(log_dir=f'./runs/{env_name}/{number}')
-    else:
-        writer = SummaryWriter(log_dir=f'./runs_{mac}/{env_name}/{number}')
+    writer = SummaryWriter(log_dir=f'./runs/{env_name}/{number}')
+
     # init sub-rewards dict
     reward_dict = {}
 
