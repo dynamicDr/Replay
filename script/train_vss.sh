@@ -25,7 +25,7 @@ nohup python3 -u train.py \
     --opponent_prefix="./models/SSL3v3Env-v0/1/4731k_" \
     --policy_update_freq=1 \
     --multithread=False \
-    --device="gpu" \
+    --device="cuda" \
     --render=False\
     --replay=default \
     > nohup.out 2>&1 &
