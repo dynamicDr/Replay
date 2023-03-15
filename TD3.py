@@ -64,7 +64,7 @@ class TD3:
             # Sample a batch of transitions from replay buffer:
             if replay_buffer.size < batch_size:
                 return
-            sample = replay_buffer.sample(batch_size)
+            sample = replay_buffer.sample()
             if sample is None:
                 return
             state, action_, reward, next_state, done, _, _ = sample
@@ -112,13 +112,13 @@ class TD3:
                 
                 # Polyak averaging update:
                 for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
-                    target_param.data.copy_( (polyak * target_param.data) + ((1-polyak) * param.data))
+                    target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
                 
                 for param, target_param in zip(self.critic_1.parameters(), self.critic_1_target.parameters()):
-                    target_param.data.copy_( (polyak * target_param.data) + ((1-polyak) * param.data))
+                    target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
                 
                 for param, target_param in zip(self.critic_2.parameters(), self.critic_2_target.parameters()):
-                    target_param.data.copy_( (polyak * target_param.data) + ((1-polyak) * param.data))
+                    target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
                 
     def save(self, directory, step):
         step = str(step)

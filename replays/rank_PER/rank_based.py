@@ -14,7 +14,7 @@ from replays.base_replay import BaseReplay
 
 class RankPER(BaseReplay):
 
-    def __init__(self,max_size,batch_size,alpha=0.7):
+    def __init__(self,max_size,batch_size,alpha=0.7,beta =0.7):
         super().__init__(max_size,batch_size)
         self.alpha = alpha
 
@@ -22,6 +22,7 @@ class RankPER(BaseReplay):
         self.priority_size = self.max_size
 
         self.alpha = alpha
+        self.beta = beta
         self.batch_size = batch_size
         # self.total_steps = conf['steps'] if 'steps' in conf else 100000
 
@@ -140,7 +141,7 @@ class RankPER(BaseReplay):
         for i in range(0, len(indices)):
             self.priority_queue.update(math.fabs(delta[i]), indices[i])
 
-    def sample(self, beta):
+    def sample(self):
         """
         sample a mini batch from experience replay
         :param global_step: now training step
@@ -165,7 +166,7 @@ class RankPER(BaseReplay):
         # find all alpha pow, notice that pdf is a list, start from 0
         alpha_pow = [distribution['pdf'][v - 1] for v in rank_list]
         # w = (N * P(i)) ^ (-beta) / max w
-        weights = np.power(np.array(alpha_pow) * partition_max, -beta)
+        weights = np.power(np.array(alpha_pow) * partition_max, -self.beta)
         w_max = max(weights)
         weights = np.divide(weights, w_max)
         # rank list is priority id

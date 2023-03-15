@@ -11,6 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 import os
 
 import utils
+from DDPG import DDPG
 from TD3 import TD3
 from replays.default_replay import DefaultReplay
 from replays.proportional_PER.proportional import ProportionalPER
@@ -26,6 +27,7 @@ def update_policy(policy, replay_buffer, t, batch_size, gamma, polyak, policy_no
 
 def train(args):
     env_name = args.env_name
+    alg_name = args.alg_name
     number = args.number
     random_seed = args.random_seed
     gamma = args.gamma  # discount for future rewards
@@ -46,6 +48,7 @@ def train(args):
     restore_prefix = f"./models/{restore_env_name}/{restore_num}/{restore_step_k}k_"
     args.restore_prefix = restore_prefix
     rl_opponent = args.rl_opponent
+    opponent_alg = args.opponent_alg
     opponent_prefix = args.opponent_prefix
     policy_update_freq = args.policy_update_freq
     multithread = args.multithread
@@ -72,12 +75,24 @@ def train(args):
 
     print(rl_opponent)
     if rl_opponent:
-        opponent_agent = TD3(lr, state_dim, action_dim, max_action, device=device)
+        if opponent_alg == "TD3":
+            OPP_ALG = TD3
+        elif opponent_alg == "DDPG":
+            OPP_ALG = DDPG
+        else:
+            raise Exception(f"No opponent alg type found: {rl_opponent}")
+        opponent_agent = OPP_ALG(lr, state_dim, action_dim, max_action, device=device)
         opponent_agent.load(opponent_prefix)
         env.set_opponent_agent(opponent_agent)
         # env.set_opponent_teammate_agent(opponent_agent)
 
-    policy = TD3(lr, state_dim, action_dim, max_action, device=device)
+    if alg_name == "TD3":
+        ALG = TD3
+    elif alg_name == "DDPG":
+        ALG = DDPG
+    else:
+        raise Exception(f"No alg type found: {alg_name}")
+    policy = ALG(lr, state_dim, action_dim, max_action, device=device)
     if restore:
         policy.load(restore_prefix)
 
@@ -217,6 +232,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Training arguments')
     parser.register('type', 'boolean', strtobool)
     parser.add_argument('--env_name', type=str, default='SSL3v34AttackEnv-v0', help='environment name')
+    parser.add_argument('--alg_name', type=str, default='TD3', help='alg name')
     parser.add_argument('--number', type=int, default=0, help='number')
     parser.add_argument('--random_seed', type=int, default=0, help='random seed')
     parser.add_argument('--gamma', type=float, default=0.99, help='discount for future rewards')
@@ -235,6 +251,7 @@ if __name__ == '__main__':
     parser.add_argument('--restore_num', type=int, default=1, help='restore number')
     parser.add_argument('--restore_step_k', type=int, default=4731, help='restore step k')
     parser.add_argument('--rl_opponent', type='boolean', default=False, help='load a rl agent as opponent')
+    parser.add_argument('--opponent_alg', type=str, default='TD3', help='alg name')
     parser.add_argument('--opponent_prefix', type=str, default="")
     parser.add_argument('--policy_update_freq', type=int, default=1, help='')
     parser.add_argument('--multithread', type='boolean', default=True, help='')

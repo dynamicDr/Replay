@@ -39,7 +39,7 @@ class SSL3v3Env(SSLBaseEnv):
             Robot on field center, ball and defenders randomly positioned on
             positive field side
         Episode Termination:
-            Goal, 25 seconds (1000 steps), or rule infraction
+            Goal, 25 seconds (1000_proPER steps), or rule infraction
     """
 
     def __init__(self, field_type=2):

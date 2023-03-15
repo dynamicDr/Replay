@@ -12,10 +12,10 @@ def extract_step_numbers(env_name,exp_number):
     return sorted(step_numbers)
 
 if __name__ == '__main__':
-    number = 1
+    number = 0
     max_episode = 100
     display = False
-    env_name = "SSL3v3Env-v0"
+    env_name = "VSS-v0"
     exp_numbers = extract_step_numbers(env_name,number)
 
     os.makedirs(f"./evaluate/{env_name}", exist_ok=True)

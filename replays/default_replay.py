@@ -6,6 +6,7 @@ from replays.base_replay import BaseReplay
 class DefaultReplay(BaseReplay):
     def __init__(self, max_size,batch_size):
         super().__init__(max_size,batch_size)
+        self.buffer=[]
     #
 
     def add(self, data,priority=None):

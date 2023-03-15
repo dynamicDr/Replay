@@ -1,0 +1,97 @@
+
+exp_x_k_step 498
+test_match_number 100
+goal 0
+opp_goal 1
+avg_episode_step 99.59
+================================
+exp_x_k_step 994
+test_match_number 100
+goal 4
+opp_goal 1
+avg_episode_step 98.35
+================================
+exp_x_k_step 1487
+test_match_number 100
+goal 3
+opp_goal 0
+avg_episode_step 99.11
+================================
+exp_x_k_step 1974
+test_match_number 100
+goal 6
+opp_goal 1
+avg_episode_step 97.16
+================================
+exp_x_k_step 2461
+test_match_number 100
+goal 9
+opp_goal 4
+avg_episode_step 95.3
+================================
+exp_x_k_step 2943
+test_match_number 100
+goal 11
+opp_goal 2
+avg_episode_step 95.93
+================================
+exp_x_k_step 3415
+test_match_number 100
+goal 23
+opp_goal 3
+avg_episode_step 91.41
+================================
+exp_x_k_step 3872
+test_match_number 100
+goal 26
+opp_goal 0
+avg_episode_step 92.75
+================================
+exp_x_k_step 4326
+test_match_number 100
+goal 35
+opp_goal 0
+avg_episode_step 89.52
+================================
+exp_x_k_step 4776
+test_match_number 100
+goal 34
+opp_goal 1
+avg_episode_step 89.86
+================================
+exp_x_k_step 5221
+test_match_number 100
+goal 43
+opp_goal 0
+avg_episode_step 85.68
+================================
+exp_x_k_step 5660
+test_match_number 100
+goal 35
+opp_goal 1
+avg_episode_step 87.07
+================================
+exp_x_k_step 6095
+test_match_number 100
+goal 48
+opp_goal 0
+avg_episode_step 83.65
+================================
+exp_x_k_step 6533
+test_match_number 100
+goal 40
+opp_goal 0
+avg_episode_step 85.87
+================================
+exp_x_k_step 6972
+test_match_number 100
+goal 34
+opp_goal 0
+avg_episode_step 87.52
+================================
+exp_x_k_step 7408
+test_match_number 100
+goal 44
+opp_goal 0
+avg_episode_step 83.39
+================================

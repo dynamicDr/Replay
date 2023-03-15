@@ -41,3 +41,18 @@ attack agent
 进球给予大的reward，被进球给予小的penalty，鼓励agent前往对方半场
 defend agent
 进球给予小的reward，被进球给予大的penalty，鼓励agent传球
+
+=======================================
+best agent: models/VSS-v0/0/7408k
+sub-best agent: models/VSS-v0/0/4326k
+gk agent: models/VSSGk-v0/0/3841k
+best DDPG agent: models/VSS-v0/1/
+
+曲线1：PER buffer，前100个episode[1 * best agent vs  1 * sub-best agent]，后100个episode[1 * best agent vs  1 * gk agent]
+结果：VSS-v0 num1000
+
+曲线2：PER buffer，前100个episode[1 * best agent vs  1 * sub-best agent]，后100个episode[1 * best agent vs  1 * sub-best agent，环境有噪声]
+
+
+曲线3：normal buffer，前100个episode[1 * best agent vs  1 * sub-best agent]，后100个episode[1 * best agent vs  1 * gk agent]
+结果：VSS-v0 num1001

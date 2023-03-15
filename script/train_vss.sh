@@ -2,7 +2,8 @@
 
 nohup python3 -u train.py \
     --env_name="VSS-v0" \
-    --number=-1 \
+    --alg_name="DDPG" \
+    --number=1 \
     --random_seed=0 \
     --gamma=0.99 \
     --batch_size=1024 \
@@ -20,10 +21,11 @@ nohup python3 -u train.py \
     --restore_step_k=1469 \
     --restore_env_name="SSL3v3Env-v0" \
     --rl_opponent=False \
+    --opponent_alg="TD3" \
     --opponent_prefix="./models/SSL3v3Env-v0/1/4731k_" \
     --policy_update_freq=1 \
     --multithread=False \
-    --device="cpu" \
+    --device="gpu" \
     --render=False\
     --replay=proportional_PER \
     > nohup.out 2>&1 &

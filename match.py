@@ -1,3 +1,5 @@
+import argparse
+import ast
 import copy
 import gym
 import numpy as np
@@ -14,7 +16,27 @@ def match(env_name, number, step_k, max_episode, display):
     max_action = float(env.action_space.high[0])
 
     args = np.load(f"./models/{env_name}/{number}/args_num_{number}.npy", allow_pickle=True)
-    args = dict(args.tolist())
+    s = args.__str__()
+    s = s.replace("Namespace(", "").replace(")", "".replace("\s",""))
+    # 分割字符串成键值对列表
+    pairs = s.split(", ")
+    # 构建字典
+    args = {}
+    for pair in pairs:
+        key, value = pair.split("=")
+        # 去掉键和值两端的空格和引号
+        key = key.strip().strip("'")
+        value = value.strip().strip("'")
+        # 将字符串转为数值类型（如果可以转换的话）
+        try:
+            value = int(value)
+        except ValueError:
+            try:
+                value = float(value)
+            except ValueError:
+                pass
+        args[key] = value
+
     agent = TD3(args["lr"], state_dim, action_dim, max_action)
     agent.actor.load_state_dict(
         torch.load(f"./models/{env_name}/{number}/{step_k}k_actor.pth"))

@@ -18,7 +18,7 @@ class ProportionalPER(BaseReplay):
 
     """
     
-    def __init__(self,max_size,batch_size,alpha=0.7):
+    def __init__(self,max_size,batch_size,alpha=0.7,beta = 0.7):
         """ Prioritized experience replay buffer initialization.
         
         Parameters
@@ -34,6 +34,7 @@ class ProportionalPER(BaseReplay):
         super().__init__(max_size,batch_size)
         self.tree = sum_tree.SumTree(self.max_size)
         self.alpha = alpha
+        self.beta = beta
 
     def add(self, data, priority):
         """ Add new sample.
@@ -45,12 +46,10 @@ class ProportionalPER(BaseReplay):
         priority : float
             sample's priority
         """
-        # print("add")
         self.tree.add(data, priority**self.alpha)
         self.size = self.tree.size
 
-    def sample(self, beta=0.7):
-        print("sample")
+    def sample(self):
         """ The method return samples randomly.
         
         Parameters
@@ -74,13 +73,20 @@ class ProportionalPER(BaseReplay):
         indices = []
         weights = []
         priorities = []
+        state, action, reward, next_state, done = [], [], [], [], []
         for _ in range(self.batch_size):
             r = random.random()
             data, priority, index = self.tree.find(r)
             priorities.append(priority)
-            weights.append((1./self.max_size/priority)**beta if priority > 1e-16 else 0)
+            weights.append((1./self.max_size/priority)**self.beta if priority > 1e-16 else 0)
             indices.append(index)
             self.priority_update([index], [0]) # To avoid duplicating
+            s, a, r, s_, d = data
+            state.append(np.array(s, copy=False))
+            action.append(np.array(a, copy=False))
+            reward.append(np.array(r, copy=False))
+            next_state.append(np.array(s_, copy=False))
+            done.append(np.array(d, copy=False))
 
         self.priority_update(indices, priorities) # Revert priorities
 
@@ -89,17 +95,6 @@ class ProportionalPER(BaseReplay):
         if max_weight!=0:
             for i in range(len(weights)):
                 weights[i] /= max_weight
-
-        state, action, reward, next_state, done = [], [], [], [], []
-
-        for i in indices:
-            s, a, r, s_, d = self.buffer[i]
-            state.append(np.array(s, copy=False))
-            action.append(np.array(a, copy=False))
-            reward.append(np.array(r, copy=False))
-            next_state.append(np.array(s_, copy=False))
-            done.append(np.array(d, copy=False))
-
         return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done), weights, indices
 
     def priority_update(self, indices, priorities):

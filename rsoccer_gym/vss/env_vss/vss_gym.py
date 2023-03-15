@@ -68,7 +68,8 @@ class VSSEnv(VSSBaseEnv):
         # Initialize Class Atributes
         self.previous_ball_potential = None
         self.actions: Dict = None
-        self.reward_shaping_total = None
+        self.reward_shaping_total = {'goal': 0, 'rw_move': 0,
+                                     'rw_ball_grad': 0, 'rw_energy': 0}
         self.v_wheel_deadzone = 0.05
 
         # =====================================
@@ -83,7 +84,6 @@ class VSSEnv(VSSBaseEnv):
 
     def reset(self):
         self.actions = None
-        self.reward_shaping_total = None
         self.previous_ball_potential = None
 
         return super().reset()
@@ -220,9 +220,8 @@ class VSSEnv(VSSBaseEnv):
         w_move = 0.2
         w_ball_grad = 0.8
         w_energy = 2e-4
-        if self.reward_shaping_total is None:
-            self.reward_shaping_total = {'goal': 0, 'rw_move': 0,
-                                         'rw_ball_grad': 0, 'rw_energy': 0}
+        self.reward_shaping_total = {'goal': 0, 'rw_move': 0,
+                                     'rw_ball_grad': 0, 'rw_energy': 0}
 
         # Check if goal ocurred
         if self.frame.ball.x > (self.field.length / 2):
