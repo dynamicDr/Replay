@@ -20,11 +20,6 @@ from replays.rank_PER.rank_based import RankPER
 from rsoccer_gym import *
 from distutils.util import strtobool
 
-def update_policy(policy, replay_buffer, t, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay):
-    policy.update(replay_buffer=replay_buffer, n_iter=t, batch_size=batch_size, gamma=gamma, polyak=polyak,
-                  policy_noise=policy_noise, noise_clip=noise_clip, policy_delay=policy_delay)
-
-
 def train(args):
     env_name = args.env_name
     alg_name = args.alg_name
@@ -130,7 +125,6 @@ def train(args):
     for episode in range(1, max_episodes + 1):
         start_time = time.time()
         state = env.reset()
-        time1 = time.time()
         for t in range(max_timesteps):
             total_step += 1
             ep_step += 1
@@ -148,7 +142,8 @@ def train(args):
                     if not sub_reward in reward_dict.keys():
                         reward_dict[sub_reward] = 0
                     reward_dict[sub_reward] += info[sub_reward]
-            replay_buffer.add((state, action, reward, next_state, float(done)),priority=1)
+            # TD error:
+            replay_buffer.add((state, action, reward, next_state, float(done)),priority=replay_buffer.max_priority())
             state = next_state
             ep_reward += reward
 
@@ -166,25 +161,8 @@ def train(args):
                 break
 
         if episode % policy_update_freq == 0:
-            if multithread:
-                # wait for last threads to finish
-                running_threads = threading.enumerate()
-                for thread in running_threads:
-                    if thread != threading.current_thread() and not isinstance(thread,
-                                                                               tensorboard.summary.writer.event_file_writer._AsyncWriterThread):
-                        time_0 = time.time()
-                        thread.join()
-                        print("block:", time.time() - time_0)
-
-                thread = threading.Thread(target=update_policy,
-                                          kwargs={'policy': policy, 'replay_buffer': replay_buffer, 't': 50*policy_update_freq,
-                                                  'batch_size': batch_size, 'gamma': gamma, 'polyak': polyak,
-                                                  'policy_noise': policy_noise, 'noise_clip': noise_clip,
-                                                  'policy_delay': policy_delay})
-                thread.start()
-            else:
                 time_0 = time.time()
-                policy.update(replay_buffer, 50*policy_update_freq, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay)
+                policy.update(replay_buffer, 1, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,episode)
                 # print("update:", time.time() - time_0)
 
         # logging updates:

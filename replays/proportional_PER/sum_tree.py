@@ -20,6 +20,7 @@ class SumTree(object):
         self.size = min(self.size+1, self.max_size)
 
         self.data[index] = contents
+
         self.val_update(index, value)
 
     def get_val(self, index):
@@ -31,28 +32,30 @@ class SumTree(object):
         diff = value-self.tree[tree_index]
         self.reconstruct(tree_index, diff)
 
+
     def reconstruct(self, tindex, diff):
         self.tree[tindex] += diff
         if not tindex == 0:
             tindex = int((tindex-1)/2)
             self.reconstruct(tindex, diff)
-    
+
     def find(self, value, norm=True):
         if norm:
             value *= self.tree[0]
         return self._find(value, 0)
 
     def _find(self, value, index):
+
         if 2**(self.tree_level-1)-1 <= index:
             return self.data[index-(2**(self.tree_level-1)-1)], self.tree[index], index-(2**(self.tree_level-1)-1)
 
         left = self.tree[2*index+1]
-
         if value <= left:
             return self._find(value,2*index+1)
         else:
-            return self._find(value-left,2*(index+1))
-        
+            return self._find(value - left, 2 * (index + 1))
+
+
     def print_tree(self):
         for k in range(1, self.tree_level+1):
             for j in range(2**(k-1)-1, 2**k-1):
@@ -67,4 +70,4 @@ if __name__ == '__main__':
     for i in range(20):
         s.add(2**i, i)
     s.print_tree()
-    print(s.find(0.5))
+    print(s.find(0.2))

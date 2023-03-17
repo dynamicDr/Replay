@@ -11,27 +11,39 @@ import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import os
 
+
+
 sys.path.append("..")
 sys.path.append(".")
 import utils
-from TD3 import TD3
+from TD3 import TD3, Critic
 from replays.default_replay import DefaultReplay
 from replays.proportional_PER.proportional import ProportionalPER
 from replays.rank_PER.rank_based import RankPER
-
+from replays.adv_replay import AdvPER
 from rsoccer_gym import *
 from distutils.util import strtobool
 
 def train(args):
+    exp_setting= args.exp_setting
+    assert exp_setting == "different_opponent" or exp_setting == "noisy_env"
+    # exp_setting="different_opponent"
+    # exp_setting="noisy_env"
     # 主角：
     main_agent_prefix = "models/VSS-v0/0/7408k_"
-    # 和对手1训练的episode数：
+
+    # 稳定环境的episode数：
     epi_1 = 1000
     opponent_1_prefix = "models/VSSGk-v0/0/2710k_"
-    # 和对手2训练的episode数：
-    epi_2 = 1000
-    opponent_2_prefix = "models/VSS-v0/0/4326k_"
 
+    # 变化环境的episode数：
+    epi_2 = 1000000000000
+    env_noise = 0
+    if exp_setting=="different_opponent":
+        opponent_2_prefix = "models/VSS-v0/0/2461k_"
+    elif exp_setting=="noisy_env":
+        new_env_noise = args.env_noise
+        noise_d = (new_env_noise-env_noise)/(epi_2*0.5)
     env_name = args.env_name
     number = args.number
     random_seed = args.random_seed
@@ -63,11 +75,7 @@ def train(args):
         device = "cpu"
 
     # save setting
-    mac = utils.get_MAC()
-    if mac==194042949069159:
-        directory = f"./models/{env_name}/{number}"
-    else:
-        directory = f"./models_{mac}/{env_name}/{number}"
+    directory = f"./models/{env_name}/{number}"
     os.makedirs(directory, exist_ok=True)
     np.save(f"{directory}/args_num_{number}.npy", args)
 
@@ -76,12 +84,14 @@ def train(args):
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
 
-    opponent_agent = TD3(lr, state_dim, action_dim, max_action, device=device)
+    writer = SummaryWriter(log_dir=f'./runs/{env_name}/{number}')
+
+    opponent_agent = TD3(lr, state_dim, action_dim, max_action, device=device,writer=None)
     opponent_agent.load(opponent_1_prefix)
     env.set_opponent_agent(opponent_agent)
     # env.set_opponent_teammate_agent(opponent_agent)
 
-    policy = TD3(lr, state_dim, action_dim, max_action, device=device)
+    policy = TD3(lr, state_dim, action_dim, max_action, device=device,writer=writer)
     policy.load(main_agent_prefix)
 
     if replay == "default":
@@ -89,7 +99,13 @@ def train(args):
     elif replay == "rank_PER":
         replay_buffer = RankPER(replay_max_size,batch_size)
     elif replay == "proportional_PER":
-        replay_buffer = ProportionalPER(replay_max_size,batch_size)
+        replay_buffer = ProportionalPER(replay_max_size, batch_size)
+    elif replay == "adv_PER":
+        replay_buffer = AdvPER(replay_max_size,batch_size)
+        saved_critic = Critic(state_dim, action_dim).to(device)
+        saved_critic.load_state_dict(policy.critic_1.state_dict())
+        replay_buffer.update_saved_critic(saved_critic)
+
     else:
         raise Exception(f"No replay type found: {replay}")
 
@@ -104,10 +120,7 @@ def train(args):
     ep_step = 0
     total_step = 0
 
-    if mac==194042949069159:
-        writer = SummaryWriter(log_dir=f'./runs/{env_name}/{number}')
-    else:
-        writer = SummaryWriter(log_dir=f'./runs_{mac}/{env_name}/{number}')
+
     # init sub-rewards dict
     reward_dict = {}
 
@@ -132,8 +145,11 @@ def train(args):
             action = action + np.random.normal(0, exploration_noise, size=env.action_space.shape[0])
             action = action.clip(env.action_space.low, env.action_space.high)
             # take action in env:
-
             next_state, reward, done, info = env.step(action)
+            noise_tensor = np.array(torch.randn(next_state.shape) * env_noise)
+            # print(env_noise)
+            next_state = (next_state + noise_tensor).clip(env.observation_space.low, env.observation_space.high)
+
             if render:
                 env.render()
             for sub_reward in info:
@@ -159,12 +175,18 @@ def train(args):
                 break
 
         if episode == epi_1:
-            print("==========Switch opponent===========")
-            opponent_agent.load(opponent_2_prefix)
-            env.set_opponent_agent(opponent_agent)
+            if exp_setting == "different_opponent":
+                print("==========Switch opponent===========")
+                opponent_agent.load(opponent_2_prefix)
+                env.set_opponent_agent(opponent_agent)
+            elif exp_setting == "noisy_env":
+                print("==========Switch noise===========")
+                env_noise = new_env_noise
+        if episode > epi_1 and exp_setting == "noisy_env":
+            env_noise -= noise_d
 
         if episode % policy_update_freq == 0:
-            policy.update(replay_buffer, 50*policy_update_freq, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay)
+            policy.update(replay_buffer, 1, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,episode)
 
         # logging updates:
         writer.add_scalar("reward", ep_reward, global_step=episode)
@@ -187,14 +209,15 @@ def train(args):
         else:
             avg_epi_time = sum(list(time_queue.queue)) / time_queue.qsize()
 
-        print("Episode: {}\t"
+        print("Number:{}\t"
+              "Episode: {}\t"
               "Step: {}k\t"
               "Reward: {}\t"
               "Goal: {} \t"
               "Done Type: {}\t"
               "Epi_step: {} \t"
               "Goal_in_100_Epi: {} \t"
-              "Avg_Epi_Time: {} ".format(episode, int(total_step / 1000),
+              "Avg_Epi_Time: {} ".format(number, episode, int(total_step / 1000),
                                      round(ep_reward, 2),
                                      info["goal"],
                                      done_type, ep_step, sum(list(goal_queue.queue)), avg_epi_time))
@@ -231,6 +254,8 @@ if __name__ == '__main__':
     parser.add_argument('--render', type='boolean', default=False, help='')
     parser.add_argument('--replay', type=str, default="default", help='')
     parser.add_argument('--replay_max_size', type=int, default=5e5, help='')
+    parser.add_argument('--env_noise', type=float, default=0, help='')
+    parser.add_argument('--exp_setting', type=str, default="", help='')
     args = parser.parse_args()
     print(args)
     train(args)

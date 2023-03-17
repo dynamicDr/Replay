@@ -38,6 +38,9 @@ class RankPER(BaseReplay):
 
         # self.beta_grad = (1 - self.beta_zero) / float(self.total_steps - self.learn_start)
 
+    def max_priority(self):
+        return self.priority_queue.get_max_priority()
+
     def build_distributions(self):
         """
         preprocess pow of rank
@@ -131,7 +134,7 @@ class RankPER(BaseReplay):
         """
         self.priority_queue.balance_tree()
 
-    def update_priority(self, indices, delta):
+    def priority_update(self, indices, priorities):
         """
         update priority according indices and deltas
         :param indices: list of experience id

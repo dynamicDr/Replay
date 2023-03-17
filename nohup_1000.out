@@ -1,0 +1,19 @@
+Namespace(env_name='VSS-v0', number=1000, random_seed=0, gamma=0.99, batch_size=1024, lr=5e-05, exploration_noise=0.1, polyak=0.995, policy_noise=0.2, noise_clip=0.5, policy_delay=2, max_episodes=10000000000000, max_timesteps=100, save_rate=5000, restore=False, restore_env_name='', restore_num=1, restore_step_k=4731, rl_opponent=False, opponent_prefix='', policy_update_freq=1, multithread=0, device='cpu', render=0, replay='proportional_PER', replay_max_size=500000.0)
+===============VSS
+Environment initialized
+Episode: 1	Step: 0k	Reward: 96.4	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 0 	Avg_Epi_Time: 0.41124534606933594 
+Episode: 2	Step: 0k	Reward: 53.75	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 0 	Avg_Epi_Time: 0.3499513864517212 
+Episode: 3	Step: 0k	Reward: 93.48	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 0 	Avg_Epi_Time: 0.3420535723368327 
+Episode: 4	Step: 0k	Reward: 70.64	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 0 	Avg_Epi_Time: 0.3286329507827759 
+Episode: 5	Step: 0k	Reward: 43.7	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 0 	Avg_Epi_Time: 0.350518798828125 
+Episode: 6	Step: 0k	Reward: 57.38	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 0 	Avg_Epi_Time: 0.33625245094299316 
+Episode: 7	Step: 0k	Reward: 27.82	Goal: 1 	Done Type: done_goal	Epi_step: 46 	Goal_in_100_Epi: 1 	Avg_Epi_Time: 0.31433142934526714 
+Episode: 8	Step: 0k	Reward: 63.62	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 1 	Avg_Epi_Time: 0.3115187883377075 
+Episode: 9	Step: 0k	Reward: 34.8	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 1 	Avg_Epi_Time: 0.3076945145924886 
+Episode: 10	Step: 0k	Reward: 62.39	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 1 	Avg_Epi_Time: 0.30425119400024414 
+Episode: 11	Step: 1k	Reward: 50.58	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 1 	Avg_Epi_Time: 0.5885229349136353 
+Episode: 12	Step: 1k	Reward: 64.24	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 1 	Avg_Epi_Time: 1.5117649793624879 
+Episode: 13	Step: 1k	Reward: 58.37	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 1 	Avg_Epi_Time: 3.720738172531128 
+Episode: 14	Step: 1k	Reward: 62.5	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 1 	Avg_Epi_Time: 7.399313354492188 
+Episode: 15	Step: 1k	Reward: 65.29	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 1 	Avg_Epi_Time: 10.464012265205383 
+Episode: 16	Step: 1k	Reward: 45.35	Goal: 0 	Done Type: done_time_up	Epi_step: 100 	Goal_in_100_Epi: 1 	Avg_Epi_Time: 10.893108296394349 

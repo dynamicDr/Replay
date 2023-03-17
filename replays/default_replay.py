@@ -7,7 +7,12 @@ class DefaultReplay(BaseReplay):
     def __init__(self, max_size,batch_size):
         super().__init__(max_size,batch_size)
         self.buffer=[]
-    #
+
+    def max_priority(self):
+        return 1
+
+    def priority_update(self, indices, priorities):
+        pass
 
     def add(self, data,priority=None):
         self.size += 1

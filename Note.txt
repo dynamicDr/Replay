@@ -48,11 +48,38 @@ sub-best agent: models/VSS-v0/0/4326k
 gk agent: models/VSSGk-v0/0/3841k
 best DDPG agent: models/VSS-v0/1/
 
+
 曲线1：PER buffer，前100个episode[1 * best agent vs  1 * sub-best agent]，后100个episode[1 * best agent vs  1 * gk agent]
 结果：VSS-v0 num1000
+
 
 曲线2：PER buffer，前100个episode[1 * best agent vs  1 * sub-best agent]，后100个episode[1 * best agent vs  1 * sub-best agent，环境有噪声]
 
 
 曲线3：normal buffer，前100个episode[1 * best agent vs  1 * sub-best agent]，后100个episode[1 * best agent vs  1 * gk agent]
 结果：VSS-v0 num1001
+
+
+num1000-1002:PER 变化对手
+
+num1010-1012:DEFAULT 变化对手
+
+num1003 1004 1005:PER 变化对手(较弱)
+
+num1013:DEFAULT 变化对手
+-================
+
+num 2000: PER 变化对手
+num 2010:PER 噪声环境 n=0.01
+num 2011:PER 噪声环境 n=0.05
+num 2012:PER 噪声环境 n=0.10
+num 2013:PER 动态噪声环境，初始值n=0.05
+num 2014:PER 动态噪声环境，初始值n=0.05
+num 2015:PER 动态噪声环境，初始值n=0.05
+
+num 2100: ADV 变化对手
+num 2110: ADV 动态噪声环境， n=0.02
+
+
+num 3000: PER 变化对手，训练到收敛，buffer size 500000
+
