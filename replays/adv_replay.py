@@ -86,14 +86,16 @@ class AdvPER(BaseReplay):
             self.old_buffer.remove()
 
     def _sample_from(self,buffer,sample_size):
+        if buffer == self.new_buffer:
+            print(buffer.size)
         indices = []
         weights = []
-        priorities = []
+        # priorities = []
         state, action, reward, next_state, done = [], [], [], [], []
         for _ in range(sample_size):
             r = random.uniform(0, 1)
             data, priority, index = buffer.find(r)
-            priorities.append(priority)
+            # priorities.append(priority)
             weights.append((1. / self.max_size / priority) ** self.beta if priority > 1e-16 else 0)
             indices.append(index)
             self.priority_update(buffer, [index], [0])  # To avoid duplicating
@@ -103,7 +105,7 @@ class AdvPER(BaseReplay):
             reward.append(np.array(r, copy=False))
             next_state.append(np.array(s_, copy=False))
             done.append(np.array(d, copy=False))
-        self.priority_update(buffer, indices, priorities)  # Revert priorities
+        # self.priority_update(buffer, indices, priorities)  # Revert priorities
         return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done),weights,indices
 
     def sample(self):
