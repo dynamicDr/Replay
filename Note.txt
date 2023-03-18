@@ -86,6 +86,6 @@ num 3100: 【调整了超参数】 PER变化对手：随机->守门员，buffer 
 num 3100: 【调整了超参数】 PER变化对手：随机->较弱的守门员，buffer size 500000
 
 
-Simple 2: adv PER 10000+100000
-Simple 3: PER 10000+100000
+Simple 11:  PER 10000+100000
+Simple 12: advER 10000+100000
 

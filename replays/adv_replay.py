@@ -86,8 +86,8 @@ class AdvPER(BaseReplay):
             self.old_buffer.remove()
 
     def _sample_from(self,buffer,sample_size):
-        if buffer == self.new_buffer:
-            print(buffer.size)
+        if buffer.size < sample_size:
+            return None,None,None,None,None,None,None
         indices = []
         weights = []
         # priorities = []
@@ -109,14 +109,11 @@ class AdvPER(BaseReplay):
         return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done),weights,indices
 
     def sample(self):
-        # self.sample_step += 1
-        # if self.writer is not None:
-        #     self.writer.add_scalar("lambda", self.sample_from_new/self.batch_size, global_step=self.sample_step)
         if self.stage == 1:
             return self._sample_from(self.new_buffer,self.batch_size)
         else:
             state, action, reward, next_state, done ,weights, indices = self._sample_from(self.new_buffer, self.sample_from_new)
-            if self.sample_from_old !=0:
+            if self.sample_from_old !=0 and state is not None:
                 t_state, t_action, t_reward, t_next_state, t_done, t_weights, t_indices = self._sample_from(self.old_buffer, self.sample_from_old)
                 state = np.concatenate((state, t_state))
                 action = np.concatenate((action, t_action))
