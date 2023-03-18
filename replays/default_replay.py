@@ -8,6 +8,9 @@ class DefaultReplay(BaseReplay):
         super().__init__(max_size,batch_size)
         self.buffer=[]
 
+    def get_cursor_idx(self):
+        return self.size
+
     def max_priority(self):
         return 1
 
@@ -37,4 +40,4 @@ class DefaultReplay(BaseReplay):
             next_state.append(np.array(s_, copy=False))
             done.append(np.array(d, copy=False))
 
-        return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done),None,None
+        return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done),None,indexes

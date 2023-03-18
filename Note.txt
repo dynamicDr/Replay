@@ -80,6 +80,12 @@ num 2015:PER 动态噪声环境，初始值n=0.05
 num 2100: ADV 变化对手
 num 2110: ADV 动态噪声环境， n=0.02
 
-
 num 3000: PER 变化对手，训练到收敛，buffer size 500000
+
+num 3100: 【调整了超参数】 PER变化对手：随机->守门员，buffer size 500000
+num 3100: 【调整了超参数】 PER变化对手：随机->较弱的守门员，buffer size 500000
+
+
+Simple 2: Vanilla ER 10000+100000
+Simple 3: PER 10000+100000
 

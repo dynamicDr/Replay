@@ -10,5 +10,5 @@ class BaseReplay():
     def sample(self):
         pass
 
-    def priority_update(self, indices, priorities):
+    def priority_update(self, *args):
         pass

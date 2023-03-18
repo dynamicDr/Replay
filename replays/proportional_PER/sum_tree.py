@@ -23,6 +23,13 @@ class SumTree(object):
 
         self.val_update(index, value)
 
+    def remove(self):
+        index = self.cursor
+        self.cursor = (self.cursor+1)%self.max_size
+        self.size = max(self.size-1, 0)
+        self.data[index] = None
+        self.val_update(index, 0)
+
     def get_val(self, index):
         tree_index = 2**(self.tree_level-1)-1+index
         return self.tree[tree_index]

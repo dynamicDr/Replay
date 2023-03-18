@@ -84,7 +84,7 @@ class rSimVSSGK(VSSBaseEnv):
     atk_target_y = 0
 
     def __init__(self):
-        super().__init__(field_type=0, n_robots_blue=3, n_robots_yellow=3,
+        super().__init__(field_type=0, n_robots_blue=1, n_robots_yellow=1,
                          time_step=0.025)
 
         self.action_space = gym.spaces.Box(
@@ -92,7 +92,7 @@ class rSimVSSGK(VSSBaseEnv):
 
         self.observation_space = gym.spaces.Box(low=-1,
                                                 high=1,
-                                                shape=(40,),
+                                                shape=(16,),
                                                 dtype=np.float32)
         self.v_wheel_deadzone = 0.05
         self.last_frame = None

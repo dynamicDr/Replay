@@ -17,6 +17,9 @@ class ProportionalPER(BaseReplay):
         self.beta = beta
         self.max_p = 1.0
 
+    def get_cursor_idx(self):
+        return self.tree.cursor
+
     def max_priority(self):
         return self.max_p
 

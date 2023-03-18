@@ -1,27 +1,34 @@
 #!/bin/bash
 
 nohup python3 -u experiment/challenge.py \
-    --env_name="VSS-v0" \
-    --number=2015 \
-    --random_seed=0 \
-    --gamma=0.99 \
+    --env_name="SimpleVSS-v0" \
+    --number=2 \
     --batch_size=1024 \
     --lr=0.00001 \
-    --exploration_noise=0.1 \
-    --polyak=0.995 \
-    --policy_noise=0.2 \
-    --noise_clip=0.5 \
-    --policy_delay=2 \
-    --max_episodes=10000000000000 \
-    --max_timesteps=100 \
+    --max_timesteps=200 \
     --save_rate=5000 \
     --policy_update_freq=1 \
-    --multithread=False \
+    --device="cpu" \
+    --render=False\
+    --replay=default_PER \
+    --exp_setting=different_opponent \
+    > nohup_PER.out 2>&1 &
+disown
+
+nohup python3 -u experiment/challenge.py \
+    --env_name="SimpleVSS-v0" \
+    --number=3 \
+    --batch_size=1024 \
+    --lr=0.00001 \
+    --max_timesteps=200 \
+    --save_rate=5000 \
+    --policy_update_freq=1 \
     --device="cpu" \
     --render=False\
     --replay=proportional_PER \
-    --env_noise=0.05 \
-    --exp_setting=noisy_env
+    --exp_setting=different_opponent \
+    > nohup_PER.out 2>&1 &
+disown
 #
 #wait $pid
 ##

@@ -53,6 +53,7 @@ class VSSEnv(VSSBaseEnv):
     """
 
     def __init__(self):
+        self.has_gk = False
         print("===============VSS")
         super().__init__(field_type=0, n_robots_blue=3, n_robots_yellow=3,
                          time_step=0.025)
@@ -90,6 +91,9 @@ class VSSEnv(VSSBaseEnv):
 
     def set_opponent_agent(self,agent):
         self.opponent_agent = agent
+
+    def set_has_gk(self,b):
+        self.has_gk = b
 
     def set_opponent_teammate_agent(self,agent):
         self.opponent_teammate = agent
@@ -259,11 +263,11 @@ class VSSEnv(VSSBaseEnv):
         field_half_length = self.field.length / 2
         field_half_width = self.field.width / 2
 
-        def x(): return random.uniform(-field_half_length + 0.1,
-                                       field_half_length - 0.1)
+        def x(): return random.uniform(-field_half_length + 0.2,
+                                       field_half_length - 0.2)
 
-        def y(): return random.uniform(-field_half_width + 0.1,
-                                       field_half_width - 0.1)
+        def y(): return random.uniform(-field_half_width + 0.2,
+                                       field_half_width - 0.2)
 
         def theta(): return random.uniform(0, 360)
 
@@ -285,12 +289,15 @@ class VSSEnv(VSSBaseEnv):
             pos_frame.robots_blue[i] = Robot(x=pos[0], y=pos[1], theta=theta())
 
         for i in range(self.n_robots_yellow):
-            pos = (x(), y())
-            while places.get_nearest(pos)[1] < min_dist:
+            if i == 0 and self.has_gk:
+                pos_frame.robots_yellow[0] = Robot(x=field_half_length - random.random()*0.2,y=0.0,theta=0)
+            else:
                 pos = (x(), y())
+                while places.get_nearest(pos)[1] < min_dist:
+                    pos = (x(), y())
 
-            places.insert(pos)
-            pos_frame.robots_yellow[i] = Robot(x=pos[0], y=pos[1], theta=theta())
+                places.insert(pos)
+                pos_frame.robots_yellow[i] = Robot(x=pos[0], y=pos[1], theta=theta())
 
         return pos_frame
 

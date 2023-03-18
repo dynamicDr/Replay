@@ -1,12 +1,11 @@
 #!/bin/bash
 
-python3 -u experiment/challenge.py \
+nohup python3 -u experiment/challenge.py \
     --env_name="VSS-v0" \
     --number=3000 \
     --random_seed=0 \
     --gamma=0.99 \
     --batch_size=1024 \
-    --buffer_size=1024 \
     --lr=0.00001 \
     --exploration_noise=0.1 \
     --polyak=0.995 \
@@ -22,7 +21,7 @@ python3 -u experiment/challenge.py \
     --render=False\
     --replay=proportional_PER \
     --env_noise=0.05 \
-    --replay_max_size = 500000 \
+    --replay_max_size=500000 \
     --exp_setting=different_opponent \
     > nohup.out 2>&1 &
 disown

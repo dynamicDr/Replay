@@ -1,6 +1,10 @@
-import argparse
-import queue
 import sys
+sys.path.append("..")
+sys.path.append(".")
+import argparse
+import math
+import queue
+
 import threading
 import time
 
@@ -11,10 +15,9 @@ import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import os
 
+from replays.CER import CER
 
 
-sys.path.append("..")
-sys.path.append(".")
 import utils
 from TD3 import TD3, Critic
 from replays.default_replay import DefaultReplay
@@ -29,18 +32,22 @@ def train(args):
     assert exp_setting == "different_opponent" or exp_setting == "noisy_env"
     # exp_setting="different_opponent"
     # exp_setting="noisy_env"
-    # 主角：
-    main_agent_prefix = "models/VSS-v0/0/7408k_"
 
+    # 主角：
+    # main_agent_prefix = "models/SimpleVSS-v0/3/978k_"
+    main_agent_prefix = None
     # 稳定环境的episode数：
-    epi_1 = 1000
-    opponent_1_prefix = "models/VSSGk-v0/0/2710k_"
+    epi_1 = 20000
+    # opponent_1_prefix = "models/VSSGk-v0/0/2710k_"
+    opponent_1_prefix = None
 
     # 变化环境的episode数：
-    epi_2 = 1000000000000
+    epi_2 = 50000
     env_noise = 0
+    opponent_2_prefix = None
     if exp_setting=="different_opponent":
-        opponent_2_prefix = "models/VSS-v0/0/2461k_"
+        # opponent_2_prefix = "models/VSS-v0/0/2461k_"
+        opponent_2_prefix = "models/VSSGk-v0/3/1389k_"
     elif exp_setting=="noisy_env":
         new_env_noise = args.env_noise
         noise_d = (new_env_noise-env_noise)/(epi_2*0.5)
@@ -83,16 +90,18 @@ def train(args):
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
-
+    print(state_dim)
     writer = SummaryWriter(log_dir=f'./runs/{env_name}/{number}')
 
     opponent_agent = TD3(lr, state_dim, action_dim, max_action, device=device,writer=None)
-    opponent_agent.load(opponent_1_prefix)
+    if opponent_1_prefix != None:
+        opponent_agent.load(opponent_1_prefix)
     env.set_opponent_agent(opponent_agent)
     # env.set_opponent_teammate_agent(opponent_agent)
 
     policy = TD3(lr, state_dim, action_dim, max_action, device=device,writer=writer)
-    policy.load(main_agent_prefix)
+    if main_agent_prefix is not None:
+        policy.load(main_agent_prefix)
 
     if replay == "default":
         replay_buffer = DefaultReplay(replay_max_size,batch_size)
@@ -100,6 +109,8 @@ def train(args):
         replay_buffer = RankPER(replay_max_size,batch_size)
     elif replay == "proportional_PER":
         replay_buffer = ProportionalPER(replay_max_size, batch_size)
+    elif replay == "CER":
+        replay_buffer = CER(replay_max_size, batch_size)
     elif replay == "adv_PER":
         replay_buffer = AdvPER(replay_max_size,batch_size)
         saved_critic = Critic(state_dim, action_dim).to(device)
@@ -133,11 +144,11 @@ def train(args):
 
     done_type = None
     # training procedure:
-    for episode in range(1, epi_1+epi_2):
+    for episode in range(1, epi_1+epi_2+1):
         start_time = time.time()
         state = env.reset()
         time1 = time.time()
-        for t in range(max_timesteps):
+        while ep_step <= max_timesteps:
             total_step += 1
             ep_step += 1
             # select action and add exploration noise:
@@ -161,11 +172,10 @@ def train(args):
             state = next_state
             ep_reward += reward
 
-            # if episode is done then update policy:
-            if done or t == (max_timesteps - 1):
+            if done or ep_step == (max_timesteps - 1):
                 if info["goal"] != 0:
                     done_type = "done_goal"
-                elif t == (max_timesteps - 1):
+                elif ep_step == (max_timesteps - 1):
                     done_type = "done_time_up"
                 else:
                     for sub_reward in info:
@@ -179,20 +189,22 @@ def train(args):
                 print("==========Switch opponent===========")
                 opponent_agent.load(opponent_2_prefix)
                 env.set_opponent_agent(opponent_agent)
+                env.set_has_gk(True)
             elif exp_setting == "noisy_env":
                 print("==========Switch noise===========")
                 env_noise = new_env_noise
+
         if episode > epi_1 and exp_setting == "noisy_env":
             env_noise -= noise_d
 
         if episode % policy_update_freq == 0:
-            policy.update(replay_buffer, 1, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,episode)
+            policy.update(replay_buffer, math.floor(ep_step/10), batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,episode)
 
         # logging updates:
         writer.add_scalar("reward", ep_reward, global_step=episode)
         writer.add_scalar('goal', info["goal"], global_step=episode)
         for r in reward_dict:
-            writer.add_scalar(r, reward_dict[r], global_step=episode)
+            # writer.add_scalar(r, reward_dict[r], global_step=episode)
             reward_dict[r] = 0
 
         # save checkpoint:
@@ -232,7 +244,7 @@ if __name__ == '__main__':
     parser.add_argument('--number', type=int, default=0, help='number')
     parser.add_argument('--random_seed', type=int, default=0, help='random seed')
     parser.add_argument('--gamma', type=float, default=0.99, help='discount for future rewards')
-    parser.add_argument('--batch_size', type=int, default=1024, help='num of transitions sampled from replay buffer')
+    parser.add_argument('--batch_size', type=int, default=128, help='num of transitions sampled from replay buffer')
     parser.add_argument('--lr', type=float, default=0.00001, help='learning rate')
     parser.add_argument('--exploration_noise', type=float, default=0.1, help='exploration noise')
     parser.add_argument('--polyak', type=float, default=0.995, help='target policy update parameter (1-tau)')

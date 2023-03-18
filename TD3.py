@@ -11,9 +11,9 @@ class Actor(nn.Module):
     def __init__(self, state_dim, action_dim, max_action):
         super(Actor, self).__init__()
 
-        self.l1 = nn.Linear(state_dim, 400)
-        self.l2 = nn.Linear(400, 300)
-        self.l3 = nn.Linear(300, action_dim)
+        self.l1 = nn.Linear(state_dim, 200)
+        self.l2 = nn.Linear(200, 100)
+        self.l3 = nn.Linear(100, action_dim)
 
         self.max_action = max_action
 
@@ -65,7 +65,9 @@ class TD3:
         return self.actor(state).cpu().data.numpy().flatten()
 
     def update(self, replay_buffer, n_iter, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay, episode):
-        for i in range(n_iter):
+        td_writer_data = 0
+        idx_writer_data = 0
+        for iter in range(n_iter):
             # Sample a batch of transitions from replay buffer:
             if replay_buffer.size < batch_size:
                 return
@@ -105,20 +107,31 @@ class TD3:
             loss_Q2.backward()
             self.critic_2_optimizer.step()
 
+            td_error = target_Q - torch.min(current_Q1, current_Q2)
+            td_error_list = []
+            for t in td_error:
+                td_error_list.append(abs(t[0].item()))
+            td_writer_data += sum(td_error_list) / len(td_error_list)
 
             # TD error
             if isinstance(replay_buffer,replays.adv_replay.AdvPER):
                 Q = torch.min(current_Q1, current_Q2)
                 replay_buffer.get_q(indices, Q,next_state, next_action,reward,done,gamma,self.writer,episode)
             elif isinstance(replay_buffer,replays.proportional_PER.proportional.ProportionalPER):
-                # print(type(replay_buffer))
-                td_error = target_Q - torch.min(current_Q1, current_Q2)
-                td_error_list = []
-                for t in td_error:
-                    td_error_list.append(abs(t[0].item()))
-                if self.writer is not None:
-                    self.writer.add_scalar("td_error", sum(td_error_list) / len(td_error_list), global_step=episode)
                 replay_buffer.priority_update(indices, td_error_list)
+
+            # sample_index_delta
+            if isinstance(replay_buffer,replays.adv_replay.AdvPER):
+                avg_sample_index_delta = replay_buffer.calculate_idx_diff()
+            else:
+                avg_sample_index_delta = 0
+                for i in indices:
+                    if i > replay_buffer.get_cursor_idx():
+                        avg_sample_index_delta += replay_buffer.max_size - (i-replay_buffer.get_cursor_idx())
+                    else:
+                        avg_sample_index_delta +=(replay_buffer.get_cursor_idx()-i)
+                avg_sample_index_delta /= len(indices)
+            idx_writer_data += avg_sample_index_delta
 
             # Delayed policy updates:
             if i % policy_delay == 0:
@@ -139,6 +152,9 @@ class TD3:
 
                 for param, target_param in zip(self.critic_2.parameters(), self.critic_2_target.parameters()):
                     target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
+        if self.writer is not None:
+            self.writer.add_scalar("td_error", td_writer_data/n_iter, global_step=episode)
+            self.writer.add_scalar("avg_sample_index_delta", idx_writer_data/n_iter, global_step=episode)
 
     def save(self, directory, step):
         step = str(step)

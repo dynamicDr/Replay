@@ -65,6 +65,7 @@ def train(args):
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
 
+
     print(rl_opponent)
     if rl_opponent:
         if opponent_alg == "TD3":
@@ -162,7 +163,7 @@ def train(args):
 
         if episode % policy_update_freq == 0:
                 time_0 = time.time()
-                policy.update(replay_buffer, 1, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,episode)
+                policy.update(replay_buffer, 10, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,episode)
                 # print("update:", time.time() - time_0)
 
         # logging updates:
