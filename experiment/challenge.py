@@ -37,7 +37,7 @@ def train(args):
     # main_agent_prefix = "models/SimpleVSS-v0/3/978k_"
     main_agent_prefix = None
     # 稳定环境的episode数：
-    epi_1 = 20000
+    epi_1 = 1000
     # opponent_1_prefix = "models/VSSGk-v0/0/2710k_"
     opponent_1_prefix = None
 
@@ -190,6 +190,9 @@ def train(args):
                 opponent_agent.load(opponent_2_prefix)
                 env.set_opponent_agent(opponent_agent)
                 env.set_has_gk(True)
+                if replay == "adv_PER":
+                    replay_buffer.stage_1_to_2()
+                    replay_buffer.update_saved_critic(policy.critic_1_target)
             elif exp_setting == "noisy_env":
                 print("==========Switch noise===========")
                 env_noise = new_env_noise
@@ -198,7 +201,7 @@ def train(args):
             env_noise -= noise_d
 
         if episode % policy_update_freq == 0:
-            policy.update(replay_buffer, math.floor(ep_step/10), batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,episode)
+            policy.update(replay_buffer, math.floor(ep_step/10), batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay, episode)
 
         # logging updates:
         writer.add_scalar("reward", ep_reward, global_step=episode)

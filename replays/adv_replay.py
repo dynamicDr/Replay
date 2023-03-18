@@ -30,6 +30,8 @@ class AdvPER(BaseReplay):
 
         self.sample_from_new = self.batch_size
         self.sample_from_old = 0
+        self.sample_step = 0
+        self.writer = None
 
     def update_saved_critic(self,critic):
         self.saved_critic = critic
@@ -56,6 +58,8 @@ class AdvPER(BaseReplay):
     def stage_2_to_1(self):
         self.stage = 1
         self.max_p = 1.0
+        self.sample_from_new = self.batch_size
+        self.sample_from_old = 0
         priorities = [self.max_p for _ in range(self.new_buffer.filled_size())]
         self.priority_update(self.new_buffer, range(self.new_buffer.filled_size()), priorities)
 
@@ -74,10 +78,11 @@ class AdvPER(BaseReplay):
         self.sample_from_old = self.batch_size - self.sample_from_new
 
     def add(self, data, priority=None):
+        self.size = self.new_buffer.size + self.old_buffer.size
         if priority is None:
             priority = self.max_priority()
         self.new_buffer.add(data, priority)
-        if self.stage == 2 and self.new_buffer.size + self.old_buffer.size >= self.max_size:
+        if self.stage == 2 and self.size >= self.max_size:
             self.old_buffer.remove()
 
     def _sample_from(self,buffer,sample_size):
@@ -102,6 +107,9 @@ class AdvPER(BaseReplay):
         return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done),weights,indices
 
     def sample(self):
+        # self.sample_step += 1
+        # if self.writer is not None:
+        #     self.writer.add_scalar("lambda", self.sample_from_new/self.batch_size, global_step=self.sample_step)
         if self.stage == 1:
             return self._sample_from(self.new_buffer,self.batch_size)
         else:
@@ -130,8 +138,9 @@ class AdvPER(BaseReplay):
                 adv_error_list.append(abs(e[0].item()))
             else:
                 adv_error_list.append(abs(1/e[0].item()))
-        if writer is not None:
-            writer.add_scalar("adv_error", sum(adv_error_list) / len(adv_error_list), global_step=episode)
+        if writer is not None and self.writer is None:
+            self.writer = writer
+        writer.add_scalar("adv_error", sum(adv_error_list) / len(adv_error_list), global_step=episode)
         self.priority_update(self.new_buffer, indices, adv_error_list[:self.sample_from_new])
         if self.sample_from_old !=0:
             self.priority_update(self.old_buffer, indices, adv_error_list[self.sample_from_new+1:])
@@ -151,7 +160,8 @@ class AdvPER(BaseReplay):
                 avg_sample_index_delta += (buffer_idx + self.old_buffer.size)
             else:
                 avg_sample_index_delta += (self.old_buffer.size-buffer_idx) + self.new_buffer.size
-        avg_sample_index_delta /= len(indices)
+
+        return  avg_sample_index_delta / len(indices)
 
 if __name__ == '__main__':
     er = AdvPER(100,10,alpha=1,beta=1,verbose=True)

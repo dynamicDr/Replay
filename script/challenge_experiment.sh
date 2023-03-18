@@ -3,7 +3,7 @@
 
 nohup python3 -u experiment/challenge.py \
     --env_name="SimpleVSS-v0" \
-    --number=2 \
+    --number=-1 \
     --batch_size=1024 \
     --lr=0.00001 \
     --max_timesteps=200 \

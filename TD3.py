@@ -65,9 +65,12 @@ class TD3:
         return self.actor(state).cpu().data.numpy().flatten()
 
     def update(self, replay_buffer, n_iter, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay, episode):
+
         td_writer_data = 0
         idx_writer_data = 0
         for iter in range(n_iter):
+            # print(replay_buffer.size)
+
             # Sample a batch of transitions from replay buffer:
             if replay_buffer.size < batch_size:
                 return
@@ -116,12 +119,12 @@ class TD3:
             # TD error
             if isinstance(replay_buffer,replays.adv_replay.AdvPER):
                 Q = torch.min(current_Q1, current_Q2)
-                replay_buffer.get_q(indices, Q,next_state, next_action,reward,done,gamma,self.writer,target_Q)
+                replay_buffer.get_q(indices, Q,next_state, next_action,reward,done,gamma,self.writer,episode,target_Q)
             elif isinstance(replay_buffer,replays.proportional_PER.proportional.ProportionalPER):
                 replay_buffer.priority_update(indices, td_error_list)
             # sample_index_delta
             if isinstance(replay_buffer,replays.adv_replay.AdvPER):
-                avg_sample_index_delta = replay_buffer.calculate_idx_diff()
+                avg_sample_index_delta = replay_buffer.calculate_idx_diff(indices)
             else:
                 avg_sample_index_delta = 0
                 for i in indices:
@@ -133,7 +136,7 @@ class TD3:
             idx_writer_data += avg_sample_index_delta
 
             # Delayed policy updates:
-            if i % policy_delay == 0:
+            if iter % policy_delay == 0:
                 # Compute actor loss:
                 actor_loss = -self.critic_1(state, self.actor(state)).mean()
 
@@ -152,6 +155,7 @@ class TD3:
                 for param, target_param in zip(self.critic_2.parameters(), self.critic_2_target.parameters()):
                     target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
         if self.writer is not None:
+            print(td_writer_data/n_iter,idx_writer_data/n_iter)
             self.writer.add_scalar("td_error", td_writer_data/n_iter, global_step=episode)
             self.writer.add_scalar("avg_sample_index_delta", idx_writer_data/n_iter, global_step=episode)
 
