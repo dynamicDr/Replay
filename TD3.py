@@ -78,6 +78,8 @@ class TD3:
             if sample is None:
                 return
             state, action_, reward, next_state, done, weights, indices = sample
+            if state is None:
+                return
             state = torch.FloatTensor(state).to(self.device)
             action = torch.FloatTensor(action_).to(self.device)
             reward = torch.FloatTensor(reward).reshape((batch_size,1)).to(self.device)
