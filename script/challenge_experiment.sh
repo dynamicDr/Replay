@@ -3,15 +3,16 @@
 
 nohup python3 -u experiment/challenge.py \
     --env_name="SimpleVSS-v0" \
-    --number=-1 \
+    --number=21 \
     --batch_size=1024 \
     --lr=0.00001 \
     --max_timesteps=200 \
-    --save_rate=5000 \
+    --save_rate=2000 \
     --policy_update_freq=1 \
     --device="cpu" \
     --render=False\
     --replay=adv_PER \
+    --replay_max_size=500000\
     --exp_setting=different_opponent \
     > nohup.out 2>&1 &
 disown

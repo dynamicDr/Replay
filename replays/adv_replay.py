@@ -27,6 +27,8 @@ class AdvPER(BaseReplay):
         self.max_p = 1.0
         self.saved_critic = None
         self.lamda = 1.0
+        self.lamda_decay = 0.001
+
 
         self.sample_from_new = self.batch_size
         self.sample_from_old = 0
@@ -52,16 +54,18 @@ class AdvPER(BaseReplay):
         self.lamda = 1.0
         self.stage = 2
         self.max_p = 1.0
-        priorities = [self.max_p for _ in range(self.new_buffer.filled_size())]
-        self.priority_update(self.new_buffer, range(self.new_buffer.filled_size()), priorities)
+        for i in range(self.new_buffer.filled_size()):
+            if self.new_buffer.data[i] is not None:
+                self.priority_update(self.new_buffer, [i], [self.max_p])
 
     def stage_2_to_1(self):
         self.stage = 1
         self.max_p = 1.0
         self.sample_from_new = self.batch_size
         self.sample_from_old = 0
-        priorities = [self.max_p for _ in range(self.new_buffer.filled_size())]
-        self.priority_update(self.new_buffer, range(self.new_buffer.filled_size()), priorities)
+        for i in range(self.new_buffer.filled_size()):
+            if self.new_buffer.data[i] is not None:
+                self.priority_update(self.new_buffer, [i], [self.max_p])
 
     def recalculate_lamda(self):
         if self.stage ==1 :
@@ -71,7 +75,7 @@ class AdvPER(BaseReplay):
         proportion = self.new_buffer.size / (self.old_buffer.size + self.new_buffer.size)
         if self.lamda > proportion:
             # TODO decay lamda
-            self.lamda -= 0.01
+            self.lamda -= self.lamda_decay
         else:
             self.lamda = proportion
         self.sample_from_new = math.floor(self.lamda * self.batch_size)
@@ -86,8 +90,7 @@ class AdvPER(BaseReplay):
             self.old_buffer.remove()
 
     def _sample_from(self,buffer,sample_size):
-        print(f"sample from {buffer}, new:{self.sample_from_new}, old:{self.sample_from_old},new_size={self.new_buffer.size}"
-              f",old_size={self.old_buffer.size}")
+
         indices = []
         weights = []
         # priorities = []
@@ -95,13 +98,14 @@ class AdvPER(BaseReplay):
         for _ in range(sample_size):
             r = random.uniform(0, 1)
             data, priority, index = buffer.find(r)
+            # print(buffer.tree[0])
             if data is None:
-                print("skip")
+                # print("skip")
                 return None
             # priorities.append(priority)
             weights.append((1. / self.max_size / priority) ** self.beta if priority > 1e-16 else 0)
             indices.append(index)
-            self.priority_update(buffer, [index], [0])  # To avoid duplicating
+            # self.priority_update(buffer, [index], [0])  # To avoid duplicating
             s, a, r, s_, d = data
             state.append(np.array(s, copy=False))
             action.append(np.array(a, copy=False))
@@ -115,13 +119,23 @@ class AdvPER(BaseReplay):
         if self.stage == 1:
             return self._sample_from(self.new_buffer,self.batch_size)
         else:
+            # print(
+            #     f"sample from new, new:{self.sample_from_new}, old:{self.sample_from_old},new_size={self.new_buffer.size}"
+            #     f",old_size={self.old_buffer.size}")
+
             sample = self._sample_from(self.new_buffer, self.sample_from_new)
             if sample is not None:
                 state, action, reward, next_state, done ,weights, indices = sample
             else:
-                return None
+                return self._sample_from(self.old_buffer,self.batch_size)
             if self.sample_from_old !=0 and state is not None:
-                t_state, t_action, t_reward, t_next_state, t_done, t_weights, t_indices = self._sample_from(self.old_buffer, self.sample_from_old)
+                # print(
+                #     f"sample from old, new:{self.sample_from_new}, old:{self.sample_from_old},new_size={self.new_buffer.size}"
+                #     f",old_size={self.old_buffer.size}")
+                sample = self._sample_from(self.old_buffer, self.sample_from_old)
+                if sample is None:
+                    return self._sample_from(self.new_buffer, self.batch_size)
+                t_state, t_action, t_reward, t_next_state, t_done, t_weights, t_indices = sample
                 state = np.concatenate((state, t_state))
                 action = np.concatenate((action, t_action))
                 reward = np.concatenate((reward, t_reward))

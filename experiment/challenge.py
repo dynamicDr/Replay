@@ -1,3 +1,4 @@
+import pickle
 import sys
 sys.path.append("..")
 sys.path.append(".")
@@ -34,15 +35,16 @@ def train(args):
     # exp_setting="noisy_env"
 
     # 主角：
-    # main_agent_prefix = "models/SimpleVSS-v0/3/978k_"
-    main_agent_prefix = None
+    main_agent_prefix = "models/SimpleVSS-v0/3/2599k_"
+    # main_agent_prefix = None
     # 稳定环境的episode数：
-    epi_1 = 10000
+    epi_1 = 2500
     # opponent_1_prefix = "models/VSSGk-v0/0/2710k_"
     opponent_1_prefix = None
 
     # 变化环境的episode数：
-    epi_2 = 50000
+    epi_2 = 10000
+
     env_noise = 0
     opponent_2_prefix = None
     if exp_setting=="different_opponent":
@@ -96,7 +98,7 @@ def train(args):
     opponent_agent = TD3(lr, state_dim, action_dim, max_action, device=device,writer=None)
     if opponent_1_prefix != None:
         opponent_agent.load(opponent_1_prefix)
-    env.set_opponent_agent(opponent_agent)
+        env.set_opponent_agent(opponent_agent)
     # env.set_opponent_teammate_agent(opponent_agent)
 
     policy = TD3(lr, state_dim, action_dim, max_action, device=device,writer=writer)
@@ -185,6 +187,8 @@ def train(args):
                 break
 
         if episode == epi_1:
+            os.makedirs(f"./experiment/saved_ckp/{number}", exist_ok=True)
+            policy.save(f"./experiment/saved_ckp/{number}", int(total_step / 1000))
             if exp_setting == "different_opponent":
                 print("==========Switch opponent===========")
                 opponent_agent.load(opponent_2_prefix)
