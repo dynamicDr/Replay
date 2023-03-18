@@ -37,7 +37,7 @@ def train(args):
     # main_agent_prefix = "models/SimpleVSS-v0/3/978k_"
     main_agent_prefix = None
     # 稳定环境的episode数：
-    epi_1 = 1000
+    epi_1 = 100
     # opponent_1_prefix = "models/VSSGk-v0/0/2710k_"
     opponent_1_prefix = None
 
