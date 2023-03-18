@@ -3,7 +3,7 @@
 nohup python3 -u train.py \
     --env_name="SimpleVSS-v0" \
     --alg_name="TD3" \
-    --number=3 \
+    --number=4 \
     --random_seed=0 \
     --batch_size=1024 \
     --lr=0.0001 \

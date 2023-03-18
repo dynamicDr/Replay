@@ -35,15 +35,15 @@ def train(args):
     # exp_setting="noisy_env"
 
     # 主角：
-    main_agent_prefix = "models/SimpleVSS-v0/3/2599k_"
+    main_agent_prefix = "models/SimpleVSS-v0/1/2897k_"
     # main_agent_prefix = None
     # 稳定环境的episode数：
-    epi_1 = 2500
+    epi_1 = 5000
     # opponent_1_prefix = "models/VSSGk-v0/0/2710k_"
     opponent_1_prefix = None
 
     # 变化环境的episode数：
-    epi_2 = 10000
+    epi_2 = 25000
 
     env_noise = 0
     opponent_2_prefix = None
