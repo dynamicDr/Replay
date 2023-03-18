@@ -116,10 +116,9 @@ class TD3:
             # TD error
             if isinstance(replay_buffer,replays.adv_replay.AdvPER):
                 Q = torch.min(current_Q1, current_Q2)
-                replay_buffer.get_q(indices, Q,next_state, next_action,reward,done,gamma,self.writer,episode)
+                replay_buffer.get_q(indices, Q,next_state, next_action,reward,done,gamma,self.writer,target_Q)
             elif isinstance(replay_buffer,replays.proportional_PER.proportional.ProportionalPER):
                 replay_buffer.priority_update(indices, td_error_list)
-
             # sample_index_delta
             if isinstance(replay_buffer,replays.adv_replay.AdvPER):
                 avg_sample_index_delta = replay_buffer.calculate_idx_diff()

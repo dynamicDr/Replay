@@ -47,7 +47,7 @@ def train(args):
     opponent_2_prefix = None
     if exp_setting=="different_opponent":
         # opponent_2_prefix = "models/VSS-v0/0/2461k_"
-        opponent_2_prefix = "models/VSSGk-v0/3/1389k_"
+        opponent_2_prefix = "models/VSSGk-v0/2/2420k_"
     elif exp_setting=="noisy_env":
         new_env_noise = args.env_noise
         noise_d = (new_env_noise-env_noise)/(epi_2*0.5)

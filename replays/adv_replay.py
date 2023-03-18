@@ -49,6 +49,9 @@ class AdvPER(BaseReplay):
         self.new_buffer = sum_tree.SumTree(self.max_size)
         self.lamda = 1.0
         self.stage = 2
+        self.max_p = 1.0
+        priorities = [self.max_p for _ in range(self.new_buffer.filled_size())]
+        self.priority_update(self.new_buffer, range(self.new_buffer.filled_size()), priorities)
 
     def stage_2_to_1(self):
         self.stage = 1
@@ -114,11 +117,12 @@ class AdvPER(BaseReplay):
                 indices = np.concatenate((indices, t_indices))
             return state, action, reward, next_state, done, weights, indices
 
-    def get_q(self, indices, Q, next_state, next_action,reward,done,gamma,writer,episode):
+    def get_q(self, indices, Q, next_state, next_action,reward,done,gamma,writer,episode,td_target_Q):
         if self.stage == 1:
-            return
-        target_Q = self.saved_critic(next_state, next_action)
-        target_Q = reward + ((1 - done) * gamma * target_Q).detach()
+            target_Q = td_target_Q
+        else:
+            target_Q = self.saved_critic(next_state, next_action)
+            target_Q = reward + ((1 - done) * gamma * target_Q).detach()
         adv_error = target_Q - Q
         adv_error_list = []
         for e in adv_error:
