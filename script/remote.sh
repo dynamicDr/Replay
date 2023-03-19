@@ -8,7 +8,7 @@ nohup python3 -u experiment/challenge.py \
     --policy_update_freq=1 \
     --device="cuda" \
     --render=False\
-    --replay=defult \
+    --replay=default \
     --replay_max_size=500000\
     --exp_setting=different_opponent \
     > nohup.out 2>&1 &
