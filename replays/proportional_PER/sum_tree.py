@@ -47,7 +47,6 @@ class SumTree(object):
             self.reconstruct(tindex, diff)
 
     def find(self, value, norm=True):
-
         if norm:
             value *= self.tree[0]
         return self._find(value, 0)
@@ -72,6 +71,12 @@ class SumTree(object):
 
     def filled_size(self):
         return self.max_size
+
+    def leaf(self):
+        leaf=[]
+        for i in range(2**(self.tree_level-1)-1,self.tree_size):
+            leaf.append(self.tree[i])
+        return leaf
 
 if __name__ == '__main__':
     s = SumTree(10)

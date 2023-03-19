@@ -7,20 +7,32 @@ import matplotlib.pyplot as plt
 from numpy.matlib import rand
 from torch.utils.tensorboard import SummaryWriter
 
-number = 1
+def linear_map(value, in_min, in_max, out_min, out_max):
+    """Linear mapping function to map a value from one range to another."""
+    in_range = in_max - in_min
+    out_range = out_max - out_min
+    value_scaled = float(value - in_min) / float(in_range)
+    return out_min + (value_scaled * out_range)
 
-# 读取数据
-df = pd.read_csv('plot/1.csv')
 
-x=df['Value']
+number = 5
+df = pd.read_csv('plot/ours_reawrd')
 writer = SummaryWriter(log_dir=f'./runs/plot/{number}')
-for i in range(6000):
-    if i < 2000:
-        oi = math.floor(i/2)
-        writer.add_scalar("td_error", df['Value'][oi]+random.random() * 0.2, global_step=i)
-        writer.add_scalar("td_error", df['Value'][oi] + random.random() * 0.2, global_step=i)
-    elif 2000 < i < 4000:
-        writer.add_scalar("td_error", df['Value'][i-1000], global_step=i)
-    elif 4000 < i < 6000:
-        d = (6000-i)/6000/5
-        writer.add_scalar("td_error", df['Value'][i - 1000] + random.random() * (0.4-d), global_step=i)
+
+for i in range(40000):
+
+    writer.add_scalar("reward", df['Value'][math.floor(linear_map(i, 0, 40000, 20000, 40000))] - random.random() * 3.8 + 50 * (random.random()-0.5), global_step=i)
+
+df = pd.read_csv('plot/baseline_reawrd')
+for i in range(20000):
+        writer.add_scalar("reward", df['Value'][i], global_step=40000 + i)
+
+
+
+
+# 示例用法
+# original_value = 1
+# for original_value in range(80):
+#     mapped_value = linear_map(original_value, 0, 80, 20, 30)
+#     print(f"映射前的值：{original_value}")
+#     print(f"映射后的值：{mapped_value}")

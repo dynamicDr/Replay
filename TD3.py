@@ -64,7 +64,7 @@ class TD3:
         state = torch.FloatTensor(state.reshape(1, -1)).to(self.device)
         return self.actor(state).cpu().data.numpy().flatten()
 
-    def update(self, replay_buffer, n_iter, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay, episode):
+    def update(self, replay_buffer, n_iter, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay, episode, train_agent):
 
         td_writer_data = []
         idx_writer_data = []
@@ -137,28 +137,30 @@ class TD3:
                 avg_sample_index_delta /= len(indices)
             idx_writer_data.append(avg_sample_index_delta)
 
-            # Delayed policy updates:
-            if iter % policy_delay == 0:
-                # Compute actor loss:
-                actor_loss = -self.critic_1(state, self.actor(state)).mean()
+            if train_agent:
+                # Delayed policy updates:
+                if iter % policy_delay == 0:
+                    # Compute actor loss:
+                    actor_loss = -self.critic_1(state, self.actor(state)).mean()
 
-                # Optimize the actor
-                self.actor_optimizer.zero_grad()
-                actor_loss.backward()
-                self.actor_optimizer.step()
+                    # Optimize the actor
+                    self.actor_optimizer.zero_grad()
+                    actor_loss.backward()
+                    self.actor_optimizer.step()
 
-                # Polyak averaging update:
-                for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
-                    target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
+                    # Polyak averaging update:
+                    for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
+                        target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
 
-                for param, target_param in zip(self.critic_1.parameters(), self.critic_1_target.parameters()):
-                    target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
+                    for param, target_param in zip(self.critic_1.parameters(), self.critic_1_target.parameters()):
+                        target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
 
-                for param, target_param in zip(self.critic_2.parameters(), self.critic_2_target.parameters()):
-                    target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
-        if self.writer is not None:
-            self.writer.add_scalar("td_error", sum(td_writer_data)/len(td_writer_data), global_step=episode)
-            self.writer.add_scalar("avg_sample_index_delta", sum(idx_writer_data)/len(idx_writer_data), global_step=episode)
+                    for param, target_param in zip(self.critic_2.parameters(), self.critic_2_target.parameters()):
+                        target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
+
+            if self.writer is not None:
+                self.writer.add_scalar("td_error", sum(td_writer_data)/len(td_writer_data), global_step=episode)
+                self.writer.add_scalar("avg_sample_index_delta", sum(idx_writer_data)/len(idx_writer_data), global_step=episode)
 
     def save(self, directory, step):
         step = str(step)

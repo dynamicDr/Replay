@@ -29,6 +29,7 @@ from rsoccer_gym import *
 from distutils.util import strtobool
 
 def train(args):
+    train_agent = True
     exp_setting= args.exp_setting
     assert exp_setting == "different_opponent" or exp_setting == "noisy_env"
     # exp_setting="different_opponent"
@@ -43,7 +44,7 @@ def train(args):
     opponent_1_prefix = None
 
     # 变化环境的episode数：
-    epi_2 = 100000
+    epi_2 = 200000
 
     env_noise = 0
     opponent_2_prefix = None
@@ -194,6 +195,7 @@ def train(args):
                 opponent_agent.load(opponent_2_prefix)
                 env.set_opponent_agent(opponent_agent)
                 env.set_has_gk(True)
+                train_agent = True
                 if replay == "adv_PER":
                     replay_buffer.stage_1_to_2()
                     replay_buffer.update_saved_critic(policy.critic_1_target)
@@ -205,7 +207,7 @@ def train(args):
             env_noise -= noise_d
 
         if episode % policy_update_freq == 0:
-            policy.update(replay_buffer, math.floor(ep_step/10), batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay, episode)
+            policy.update(replay_buffer, math.floor(ep_step/10), batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay, episode,train_agent)
 
         # logging updates:
         writer.add_scalar("reward", ep_reward, global_step=episode)
