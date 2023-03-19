@@ -66,8 +66,8 @@ class TD3:
 
     def update(self, replay_buffer, n_iter, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay, episode):
 
-        td_writer_data = 0
-        idx_writer_data = 0
+        td_writer_data = []
+        idx_writer_data = []
         for iter in range(n_iter):
             # print(replay_buffer.size)
 
@@ -116,7 +116,7 @@ class TD3:
             td_error_list = []
             for t in td_error:
                 td_error_list.append(abs(t[0].item()))
-            td_writer_data += sum(td_error_list) / len(td_error_list)
+            td_writer_data.append(td_error_list)
 
             # TD error
             if isinstance(replay_buffer,replays.adv_replay.AdvPER):
@@ -135,7 +135,7 @@ class TD3:
                     else:
                         avg_sample_index_delta +=(replay_buffer.get_cursor_idx()-i)
                 avg_sample_index_delta /= len(indices)
-            idx_writer_data += avg_sample_index_delta
+            idx_writer_data.append(avg_sample_index_delta)
 
             # Delayed policy updates:
             if iter % policy_delay == 0:
@@ -157,9 +157,8 @@ class TD3:
                 for param, target_param in zip(self.critic_2.parameters(), self.critic_2_target.parameters()):
                     target_param.data.copy_((polyak * target_param.data) + ((1 - polyak) * param.data))
         if self.writer is not None:
-            print(td_writer_data/n_iter,idx_writer_data/n_iter)
-            self.writer.add_scalar("td_error", td_writer_data/n_iter, global_step=episode)
-            self.writer.add_scalar("avg_sample_index_delta", idx_writer_data/n_iter, global_step=episode)
+            self.writer.add_scalar("td_error", sum(td_writer_data)/len(td_writer_data), global_step=episode)
+            self.writer.add_scalar("avg_sample_index_delta", sum(idx_writer_data)/len(idx_writer_data), global_step=episode)
 
     def save(self, directory, step):
         step = str(step)
