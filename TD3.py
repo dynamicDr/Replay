@@ -116,7 +116,7 @@ class TD3:
             td_error_list = []
             for t in td_error:
                 td_error_list.append(abs(t[0].item()))
-            td_writer_data.append(td_error_list)
+            td_writer_data = td_writer_data + td_error_list
 
             # TD error
             if isinstance(replay_buffer,replays.adv_replay.AdvPER):
@@ -135,7 +135,7 @@ class TD3:
                     else:
                         avg_sample_index_delta +=(replay_buffer.get_cursor_idx()-i)
                 avg_sample_index_delta /= len(indices)
-            idx_writer_data.append(avg_sample_index_delta)
+            idx_writer_data = idx_writer_data + avg_sample_index_delta
 
             # Delayed policy updates:
             if iter % policy_delay == 0:
