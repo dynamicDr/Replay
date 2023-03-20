@@ -202,7 +202,7 @@ def train(args):
             elif exp_setting == "noisy_env":
                 print("==========Switch noise===========")
                 env_noise = new_env_noise
-        if episode == epi_1 + 200:
+        if episode == epi_1 + 200 and replay == "adv_PER":
             replay_buffer.stage_1_to_2()
             replay_buffer.update_saved_critic(policy.critic_1_target)
         if episode > epi_1 and exp_setting == "noisy_env":

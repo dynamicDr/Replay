@@ -27,7 +27,7 @@ class AdvPER(BaseReplay):
         self.max_p = 1.0
         self.saved_critic = None
         self.lamda = 1.0
-        self.lamda_decay = 0.001
+        self.lamda_decay = 0.005
 
 
         self.sample_from_new = self.batch_size

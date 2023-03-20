@@ -91,5 +91,6 @@ Simple 12: advER 10000+100000
 
 Simple 21: advER  5e5
 Simple 22: PER  5e5
-Simple 24: advER  5e5
-Simple 25: vanilla 5e5
+Simple 24: advER  1e5
+Simple 25: vanilla 1e5
+Simple 26: PER  1e5
