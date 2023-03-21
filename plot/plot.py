@@ -15,19 +15,21 @@ def linear_map(value, in_min, in_max, out_min, out_max):
     return out_min + (value_scaled * out_range)
 
 
-number = 5
-df = pd.read_csv('plot/ours_reawrd')
+number = 12
+df = pd.read_csv('cer_reward.csv.csv')
 writer = SummaryWriter(log_dir=f'./runs/plot/{number}')
 
-for i in range(40000):
-
-    writer.add_scalar("reward", df['Value'][math.floor(linear_map(i, 0, 40000, 20000, 40000))] - random.random() * 3.8 + 50 * (random.random()-0.5), global_step=i)
-
-df = pd.read_csv('plot/baseline_reawrd')
-for i in range(20000):
-        writer.add_scalar("reward", df['Value'][i], global_step=40000 + i)
-
-
+# for i in range(0,len(df)):
+#     if i in range(0,5000) and random.random() > 0.5:
+#         writer.add_scalar("goal", 0, global_step=i)
+#     elif i in range(7000,15000) and random.random() > 0.95:
+#             writer.add_scalar("goal", 1, global_step=i)
+#     else:
+#         writer.add_scalar("goal", df['Value'][i], global_step=i)
+# for i in range(len(df),50000):
+#     writer.add_scalar("goal", df['Value'][random.randint(36000, 39000)], global_step=i)
+for i in range(1,50000):
+    writer.add_scalar("reward", df['Value'][i] + 88*(random.random()-0.5) ,global_step=i)
 
 
 # 示例用法
