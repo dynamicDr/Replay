@@ -10,6 +10,9 @@ class CER(BaseReplay):
         super().__init__(max_size,batch_size)
         self.buffer=[]
 
+    def get_cursor_idx(self):
+        return self.size
+
     def sample_from_recent(self,size):
         indexes = np.random.randint(len(self.buffer)-size*10, len(self.buffer), size)
         state, action, reward, next_state, done = [], [], [], [], []
@@ -43,9 +46,9 @@ class CER(BaseReplay):
             self.size = len(self.buffer)
 
         state, action, reward, next_state, done = self.sample_from_recent(math.floor(self.batch_size/10))
-        print("recent_sample:",math.floor(self.batch_size/10))
+        # print("recent_sample:",math.floor(self.batch_size/10))
         indexes = np.random.randint(0, len(self.buffer), size=batch_size-math.floor(self.batch_size/10))
-        print("long_term_sample:",batch_size-math.floor(self.batch_size/10))
+        # print("long_term_sample:",batch_size-math.floor(self.batch_size/10))
         for i in indexes:
             s, a, r, s_, d = self.buffer[i]
             state.append(np.array(s, copy=False))
@@ -54,4 +57,4 @@ class CER(BaseReplay):
             next_state.append(np.array(s_, copy=False))
             done.append(np.array(d, copy=False))
 
-        return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done),None,None
+        return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done),None,indexes

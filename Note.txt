@@ -94,3 +94,7 @@ Simple 22: PER  5e5
 Simple 24: advER  1e5
 Simple 25: vanilla 1e5
 Simple 26: PER  1e5
+Simple 27: CER  1e5
+
+CER 11
+vanila 12

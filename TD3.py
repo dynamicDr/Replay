@@ -75,6 +75,7 @@ class TD3:
             if replay_buffer.size < batch_size:
                 return
             sample = replay_buffer.sample()
+            # print(sample)
             if sample is None:
                 return
             state, action_, reward, next_state, done, weights, indices = sample

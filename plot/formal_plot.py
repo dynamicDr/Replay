@@ -82,7 +82,7 @@ plt.clf()
 plt.figure(figsize=(12, 8))
 sns.set_style("whitegrid")
 palette = sns.color_palette("deep", len(data))
-plt.xlim(0, 8000)
+plt.xlim(0, 10000)
 plt.ylim(10000, 60000)
 
 for i, alg in enumerate(data):
@@ -90,9 +90,17 @@ for i, alg in enumerate(data):
 
     if alg == "Vanilla ER":
         pass
-    else:
+    elif alg == "PER":
         df['Smoothed'] = df['Value'].rolling(window=200, min_periods=1).mean()
         plt.plot(df['Step'][100:], df['Smoothed'][100:], label=alg, color=palette[i])
+    elif alg == "CER":
+        df['Smoothed'] = df['Value'].rolling(window=1000, min_periods=1).mean()
+        plt.plot(df['Step'][100:], df['Smoothed'][100:], label=alg, color=palette[i])
+    elif alg == "APER":
+        df['Smoothed'] = df['Value'].rolling(window=200, min_periods=1).mean()
+        if i<5000:
+            plt.plot(df['Step'][100:], df['Smoothed'][100:], label=alg, color=palette[i])
+
     # plt.fill_between(df['Step'][100:], df['Smoothed'][100:]-df['Std'][100:], df['Smoothed'][100:]+df['Std'][100:], alpha=0.1, color=palette[i])
 plt.xlabel('Episode')
 plt.ylabel('Step difference')
